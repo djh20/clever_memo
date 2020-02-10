@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.github.irshulx.wysiwyg.ui.cloud.CloudFragment"
+        android:label="Tag Cloud"
+        tools:layout="@layout/fragment_cloud" />
+
+    <fragment
+        android:id="@+id/nav_gallery"
+        android:name="com.github.irshulx.wysiwyg.ui.explorer.ExplorerFragment"
+        android:label="Explorer"
+        tools:layout="@layout/fragment_explorer" />
+
+    <fragment
+        android:id="@+id/nav_slideshow"
+        android:name="com.github.irshulx.wysiwyg.ui.setting.SettingFragment"
+        android:label="Setting"
+        tools:layout="@layout/fragment_setting" />
+
+    <fragment
+        android:id="@+id/nav_share"
+        android:name="com.github.irshulx.wysiwyg.ui.share.ShareFragment"
+        android:label="@string/menu_share"
+        tools:layout="@layout/fragment_share" />
+
+    <fragment
+        android:id="@+id/nav_send"
+        android:name="com.github.irshulx.wysiwyg.ui.send.SendFragment"
+        android:label="@string/menu_send"
+        tools:layout="@layout/fragment_send" />
+</navigation>

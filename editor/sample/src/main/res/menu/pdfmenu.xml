@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/undo"
+        android:icon="@drawable/ic_arrow_back_black_24dp"
+        android:title="Item"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/redo"
+        android:icon="@drawable/ic_arrow_forward_black_24dp"
+        android:title="Item"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/pdfLoad"
+        android:icon="@drawable/ic_insert_drive_file_black_24dp"
+        android:title="Item"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/save"
+        android:icon="@drawable/ic_save_black_24dp"
+        android:title="Item"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/stroke"
+        android:title="굵기 입력" />
+    <item
+        android:id="@+id/colorPick"
+        android:title="색상 선택" />
+</menu>
