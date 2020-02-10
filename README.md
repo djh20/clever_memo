@@ -1,2 +1,3 @@
 # clever_memo
  
+Ω√¿€!
