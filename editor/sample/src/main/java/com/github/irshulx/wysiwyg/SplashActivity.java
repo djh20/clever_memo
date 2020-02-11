@@ -11,7 +11,7 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         try {
-            Thread.sleep(3000); //대기 초 설정
+            Thread.sleep(5000); //대기 초 설정
         } catch (Exception e) {
             e.printStackTrace();
         }
