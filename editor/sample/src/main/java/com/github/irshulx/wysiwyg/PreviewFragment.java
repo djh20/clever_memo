@@ -58,23 +58,7 @@ public class PreviewFragment extends Fragment {
         renderer.setListItemLayout(R.layout.tmpl_list_item);
         String content= mSerialized;
         EditorContent Deserialized= renderer.getContentDeserialized(content);
-        renderer.setEditorListener(new EditorListener() {
-            @Override
-            public void onTextChanged(EditText editText, Editable text) {
 
-            }
-
-            @Override
-            public void onUpload(Bitmap image, String uuid) {
-
-            }
-
-            @Override
-            public View onRenderMacro(String name, Map<String, Object> settings, int index) {
-                View view = getLayoutInflater().inflate(R.layout.layout_authored_by, null);
-                return view;
-            }
-        });
         renderer.render(Deserialized);
         return  view;
     }

@@ -11,21 +11,13 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        try {
-            Twitter twit = new Twitter();
 
-            Intent intent = new Intent(SplashActivity.this, // splash 이후 main호출
-                    FirstActivity.class);
-//        intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION); // 자동 애니메이션 삭제
-            startActivity(intent);
+        Intent intent = new Intent(this, FirstActivity.class);
+        Twitter twitter = new Twitter(); // 트위터 객체 생성 및 put
+        intent.putExtra("twitter", twitter);
 
-            SplashActivity.this.finish();
 
-        } catch (Exception e) {
-
-        } finally {
-            SplashActivity.this.finish();
-        }
+        startActivity(intent);
+        finish();
     }
-
 }

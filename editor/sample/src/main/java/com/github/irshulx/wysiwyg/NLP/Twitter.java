@@ -4,11 +4,12 @@ import com.twitter.penguin.korean.TwitterKoreanProcessorJava;
 import com.twitter.penguin.korean.phrase_extractor.KoreanPhraseExtractor;
 import com.twitter.penguin.korean.tokenizer.KoreanTokenizer;
 
+import java.io.Serializable;
 import java.util.List;
 
 import scala.collection.Seq;
 
-public class Twitter {
+public class Twitter implements Serializable {
 
     public Twitter(){
         CharSequence loading = TwitterKoreanProcessorJava.normalize("로딩");
@@ -34,4 +35,3 @@ public class Twitter {
     }
 
 }
-

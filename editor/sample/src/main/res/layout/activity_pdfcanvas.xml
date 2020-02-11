@@ -4,37 +4,27 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.github.irshulx.wysiwyg.Utilities.DrawManager.PDFCanvas">
-
-    <FrameLayout
-        android:id="@+id/frameLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+    tools:context=".PDFCanvas">
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <com.github.barteksc.pdfviewer.PDFView
-            android:id="@+id/pdfView"
+        <ScrollView
+            android:id = "@+id/container"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-        </com.github.barteksc.pdfviewer.PDFView>
-
-        <LinearLayout
-            android:layout_width="500dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:id="@+id/container"
+            <RelativeLayout
+                android:id="@+id/scroll"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"></LinearLayout>
-        </LinearLayout>
-
-    </FrameLayout>
+                android:layout_height="match_parent"/>
+        </ScrollView>
+    </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

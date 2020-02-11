@@ -1,13 +1,17 @@
 package com.github.irshulx.wysiwyg;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.util.LogPrinter;
@@ -25,16 +29,23 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
+import android.widget.Toast;
 
-import com.github.irshulx.wysiwyg.Utilities.DrawManager.PDFCanvas_;
+import com.github.irshulx.wysiwyg.NLP.Twitter;
+import com.twitter.penguin.korean.phrase_extractor.KoreanPhraseExtractor;
+
+import java.util.List;
 
 
 public class FirstActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
+    private Twitter twitter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        twitter = (Twitter) getIntent().getSerializableExtra("twitter"); // Twitter 객체 받아오기
+
         setContentView(R.layout.activity_first);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -57,8 +68,21 @@ public class FirstActivity extends AppCompatActivity {
                         }
                         else
                         {
-                            startActivity(new Intent(getApplicationContext(), PDFCanvas_.class));
-                    }
+                            if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED) {
+                                if (ActivityCompat.shouldShowRequestPermissionRationale(FirstActivity.this,Manifest.permission.READ_EXTERNAL_STORAGE)) {
+
+                                } else {
+                                    ActivityCompat.requestPermissions(FirstActivity.this,
+                                            new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                                            1);
+                                }
+                            }
+                            // 파일 권한 얻기
+
+                            Intent intent = new Intent(getApplicationContext(), PDFCanvas.class);
+                            intent.putExtra("twitter", twitter);
+                            startActivity(intent);
+                        }
                     }
                 });
 

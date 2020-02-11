@@ -193,30 +193,6 @@ public class EditorTestActivity extends AppCompatActivity {
         editor.setDividerLayout(R.layout.tmpl_divider_layout);
         editor.setEditorImageLayout(R.layout.tmpl_image_view);
         editor.setListItemLayout(R.layout.tmpl_list_item);
-        editor.setEditorListener(new EditorListener() {
-            @Override
-            public void onTextChanged(EditText editText, Editable text) {
-                // Toast.makeText(EditorTestActivity.this, text, Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onUpload(Bitmap image, String uuid) {
-                Toast.makeText(EditorTestActivity.this, uuid, Toast.LENGTH_LONG).show();
-                /**
-                 * TODO do your upload here from the bitmap received and all onImageUploadComplete(String url); to insert the result url to
-                 * let the editor know the upload has completed
-                 */
-                editor.onImageUploadComplete("http://www.videogamesblogger.com/wp-content/uploads/2015/08/metal-gear-solid-5-the-phantom-pain-cheats-640x325.jpg", uuid);
-                // editor.onImageUploadFailed(uuid);
-            }
-
-                @Override
-                public View onRenderMacro(String name, Map<String, Object> props, int index) {
-                    View view = getLayoutInflater().inflate(R.layout.layout_authored_by, null);
-                    return view;
-                }
-
-        });
         String text = "<h1 data-tag=\"input\" style=\"color:#c00000;\"><span style=\"color:#C00000;\">textline 1 a great time and I will branch office is closed on Sundays</span></h1><hr data-tag=\"hr\"/><p data-tag=\"input\" style=\"color:#000000;\">the only one that you have received the stream free and open minded person to discuss a business opportunity to discuss my background.</p><div data-tag=\"img\"><img src=\"http://www.videogamesblogger.com/wp-content/uploads/2015/08/metal-gear-solid-5-the-phantom-pain-cheats-640x325.jpg\" /><p data-tag=\"img-sub\" style=\"color:#FF0000;\" class=\"editor-image-subtitle\"><b>it is a great weekend and we will have the same to me that the same a great time</b></p></div><p data-tag=\"input\" style=\"color:#000000;\">I have a place where I have a great time and I will branch manager state to boast a new job in a few weeks and we can host or domain to get to know.</p><div data-tag=\"img\"><img src=\"http://www.videogamesblogger.com/wp-content/uploads/2015/08/metal-gear-solid-5-the-phantom-pain-cheats-640x325.jpg\" /><p data-tag=\"img-sub\" style=\"color:#5E5E5E;\" class=\"editor-image-subtitle\">the stream of water in a few weeks and we can host in the stream free and no ippo</p></div><p data-tag=\"input\" style=\"color:#000000;\">it is that I can get it done today will online at location and I am not a big difference to me so that we are headed <a href=\"www.google.com\">www.google.com</a> it was the only way I.</p><blockquote data-tag=\"input\" style=\"color:#000000;\">I have to do the negotiation and a half years old story and I am looking forward in a few days.</blockquote><p data-tag=\"input\" style=\"color:#000000;\">it is not a good day to get the latest version to blame it to the product the.</p><ol data-tag=\"ol\"><li data-tag=\"list-item-ol\"><span style=\"color:#000000;\">it is that I can send me your email to you and I am not able a great time and consideration I have to do the needful.</span></li><li data-tag=\"list-item-ol\"><span style=\"color:#000000;\">I have to do the needful and send to me and</span></li><li data-tag=\"list-item-ol\"><span style=\"color:#000000;\">I will be a while ago to a great weekend a great time with the same.</span></li></ol><p data-tag=\"input\" style=\"color:#000000;\">it was u can do to make an offer for a good day I u u have been working with a new job to the stream free and no.</p><p data-tag=\"input\" style=\"color:#000000;\">it was u disgraced our new home in time to get the chance I could not find a good idea for you have a great.</p><p data-tag=\"input\" style=\"color:#000000;\">I have to do a lot to do the same a great time and I have a great.</p><p data-tag=\"input\" style=\"color:#000000;\"></p>";
         editor.render(text);
         findViewById(R.id.btnRender).setOnClickListener(new View.OnClickListener() {
@@ -234,14 +210,6 @@ public class EditorTestActivity extends AppCompatActivity {
         });
     }
 
-    private View insertMacro() {
-        View view = getLayoutInflater().inflate(R.layout.layout_authored_by, null);
-        Map<String, Object> map = new HashMap<>();
-        map.put("author-name", "Alex Wong");
-        map.put("date","12 July 2018");
-        editor.insertMacro("author-tag",view, map);
-        return view;
-    }
 
     private String colorHex(int color) {
         int r = Color.red(color);
