@@ -9,7 +9,7 @@
 
     <fragment
         android:id="@+id/tree"
-        android:name="com.github.irshulx.wysiwyg.ui.treeCategroy.TreeFragment"
+        android:name="com.github.irshulx.wysiwyg.View.treeCategroy.TreeFragment"
         android:layout_width="300dp"
         android:layout_height="match_parent"
         app:layout_constraintStart_toStartOf="@+id/nav_host_fragment"

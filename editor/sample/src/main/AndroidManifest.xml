@@ -20,12 +20,14 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
+        android:name=".MyApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:largeHeap="true"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".PDFCanvas"></activity>
+        <activity android:name=".PDFCanvas_"
+            android:label="PDF Canvas"></activity>
         <activity
             android:name=".SplashActivity"
             android:screenOrientation="portrait"
@@ -39,7 +41,7 @@
         <activity
             android:name=".FirstActivity"
             android:label="@string/title_activity_first"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:theme="@style/AppTheme.NoActionBar"></activity>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
@@ -56,7 +58,7 @@
         <activity
             android:name=".EditorTestActivity"
             android:label="@string/title_activity_editor_test"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:theme="@style/AppTheme.NoActionBar"></activity>
         <activity
             android:name=".RenderTestActivity"
             android:label="@string/title_activity_render"

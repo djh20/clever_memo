@@ -26,6 +26,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 
+import com.github.irshulx.wysiwyg.Utilities.DrawManager.PDFCanvas_;
 
 
 public class FirstActivity extends AppCompatActivity {
@@ -56,8 +57,8 @@ public class FirstActivity extends AppCompatActivity {
                         }
                         else
                         {
-                            startActivity(new Intent(getApplicationContext(),PDFCanvas.class));
-                        }
+                            startActivity(new Intent(getApplicationContext(), PDFCanvas_.class));
+                    }
                     }
                 });
 
