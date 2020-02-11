@@ -11,6 +11,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
@@ -23,11 +24,15 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
+
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,11 +49,13 @@ public class PDFCanvas extends AppCompatActivity {
     MyPaintView paintArr[];
     int pdfCount;
     int lastTouch;
+    File storage; //내부저장소 경로
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdfcanvas);
+        storage = getCacheDir();
         showFileChooser();
     }
 
@@ -83,10 +90,68 @@ public class PDFCanvas extends AppCompatActivity {
             case R.id.redo:
                 paintArr[lastTouch].onClickRedo();
                 break;
+            case R.id.save:
+                showSaveDialog();
+                break;
 
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showSaveDialog(){
+        Log.e("진입","showdialog");
+        AlertDialog.Builder saveDialog = new AlertDialog.Builder(this);
+        saveDialog.setTitle("Save");
+        saveDialog.setMessage("저장할 메모의 제목을 입력해주세요");
+        final EditText et = new EditText(this);
+        saveDialog.setView(et);
+
+        saveDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String value = et.getText().toString();
+                File dir = new File(storage,value);
+                if(!dir.exists())
+                    dir.mkdirs();
+                Log.e("경로",dir.getAbsolutePath());
+                for(int i = 0 ; i < pdfCount ; i++)
+                {
+                    saveBitmapToPNG(paintArr[i].getCanvasBit(), i+"", dir);//각 페이지의 캔버스마다 bitmap
+                }
+                dialog.dismiss();
+            }
+        });
+
+        saveDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        saveDialog.show();
+
+
+
+    }
+
+    private void saveBitmapToPNG(Bitmap bitmap, String name, File dir) {
+
+        String fileName = name + ".png";
+
+        File tempFile = new File(dir, fileName);
+
+        try {
+            tempFile.createNewFile();
+            FileOutputStream out = new FileOutputStream(tempFile);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            Log.e("MyTag","FileNotFoundException : " + e.getMessage());
+        } catch (IOException e) {
+            Log.e("MyTag","IOException : " + e.getMessage());
+        }
     }
 
     private static final int FILE_SELECT_CODE = 0;
@@ -154,8 +219,7 @@ public class PDFCanvas extends AppCompatActivity {
                     pageh = height*pagew/width;
                     Bitmap bitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
 
-                    pdfiumCore.renderPageBitmap(pdfDocument, bitmap, pageNum, 0, 0,
-                            scroll.getMeasuredWidth(), height*scroll.getMeasuredWidth()/width);
+                    pdfiumCore.renderPageBitmap(pdfDocument, bitmap, pageNum, 0, 0, pagew, pageh);
 
                     MyPaintView img = new MyPaintView(this,null,bitmap);
                     img.setId(i);
@@ -265,6 +329,7 @@ public class PDFCanvas extends AppCompatActivity {
         private ArrayList<Path> undonePaths = new ArrayList<Path>();
         private float mX, mY;
         private static final float TOUCH_TOLERANCE = 4;
+        private Bitmap canvasBit;
 
         public MyPaintView(Context context, AttributeSet attributeSet, Bitmap mBit) {
             super(context, attributeSet);
@@ -278,7 +343,8 @@ public class PDFCanvas extends AppCompatActivity {
             mPaint.setStrokeCap(Paint.Cap.ROUND);
             mPaint.setStrokeWidth(6);
             mPath = new Path();
-            mCanvas = new Canvas();
+            canvasBit = Bitmap.createBitmap(pagew,pageh,Bitmap.Config.ARGB_8888);
+            mCanvas = new Canvas(canvasBit);
         }
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -364,7 +430,12 @@ public class PDFCanvas extends AppCompatActivity {
 
         public void setColor(int color){
             mPaint.setColor(color);
+        }
 
+        public Bitmap getCanvasBit(){
+            Canvas saveCanvas = new Canvas(mBit);
+            saveCanvas.drawBitmap(canvasBit, 0, 0, null);
+            return mBit;
         }
     }
 }
