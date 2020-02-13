@@ -19,7 +19,6 @@ import com.github.irshulx.Editor;
 public class HTMLRenderedFragment extends Fragment {
     private static final String SERIALIZED = "";
 
-    // TODO: Rename and change types of parameters
     private String mSerialized;
     private String mSerializedHtml;
 
@@ -33,7 +32,6 @@ public class HTMLRenderedFragment extends Fragment {
      * @param serialized Parameter 1.
      * @return A new instance of fragment PreviewFragment.
      */
-    // TODO: Rename and change types and number of parameters
     public static HTMLRenderedFragment newInstance(String serialized) {
         HTMLRenderedFragment fragment = new HTMLRenderedFragment();
         Bundle args = new Bundle();

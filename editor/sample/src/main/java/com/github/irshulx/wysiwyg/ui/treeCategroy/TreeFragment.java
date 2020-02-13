@@ -20,7 +20,6 @@ public class TreeFragment extends Fragment {
     private TreeViewModel treeViewModel;
     private AndroidTreeView tView;
 
-
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         treeViewModel = ViewModelProviders.of(this).get(TreeViewModel.class);

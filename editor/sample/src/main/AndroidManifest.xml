@@ -27,7 +27,7 @@
         android:largeHeap="true"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".PDFCanvas"></activity>
+        <activity android:name=".NLP.MemoLoadManager"></activity>
         <activity
             android:name=".SplashActivity"
             android:screenOrientation="portrait"

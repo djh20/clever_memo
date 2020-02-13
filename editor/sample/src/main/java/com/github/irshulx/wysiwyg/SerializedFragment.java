@@ -17,7 +17,6 @@ import android.widget.TextView;
 public class SerializedFragment extends Fragment {
     private static final String SERIALIZED = "";
 
-    // TODO: Rename and change types of parameters
     private String mSerialized;
 
     public SerializedFragment() {
@@ -30,7 +29,6 @@ public class SerializedFragment extends Fragment {
      * @param serialized Parameter 1.
      * @return A new instance of fragment PreviewFragment.
      */
-    // TODO: Rename and change types and number of parameters
     public static SerializedFragment newInstance(String serialized) {
         SerializedFragment fragment = new SerializedFragment();
         Bundle args = new Bundle();
