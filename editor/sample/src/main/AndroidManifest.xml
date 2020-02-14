@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> <!-- To auto-complete the email text field in the login form with the user's emails -->
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!--
  The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
          Google Maps Android API v2, but are recommended.
@@ -25,14 +26,13 @@
         android:largeHeap="true"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".PDFCanvas"></activity>
+        <activity android:name=".NLP.MemoLoadManager"></activity>
         <activity
             android:name=".SplashActivity"
             android:screenOrientation="portrait"
             android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -54,11 +54,11 @@
         <!-- android:name="com.google.android.gms.version" -->
         <!-- android:value="@integer/google_play_services_version" /> -->
         <activity
-            android:name=".EditorTestActivity"
+            android:name=".TextEditor.EditorTestActivity"
             android:label="@string/title_activity_editor_test"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
-            android:name=".RenderTestActivity"
+            android:name=".TextEditor.RenderTestActivity"
             android:label="@string/title_activity_render"
             android:theme="@style/AppTheme.NoActionBar" />
     </application>

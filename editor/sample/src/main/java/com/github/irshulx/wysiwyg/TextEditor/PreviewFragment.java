@@ -1,18 +1,15 @@
-package com.github.irshulx.wysiwyg;
-import android.graphics.Bitmap;
+package com.github.irshulx.wysiwyg.TextEditor;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 
 import com.github.irshulx.Editor;
-import com.github.irshulx.EditorListener;
 import com.github.irshulx.models.EditorContent;
+import com.github.irshulx.wysiwyg.R;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -69,7 +66,6 @@ public class PreviewFragment extends Fragment {
     }
 
     public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
         void onFragmentInteraction(Uri uri);
     }
 

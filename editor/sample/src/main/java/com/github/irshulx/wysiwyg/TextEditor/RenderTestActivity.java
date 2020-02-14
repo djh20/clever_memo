@@ -1,4 +1,4 @@
-package com.github.irshulx.wysiwyg;
+package com.github.irshulx.wysiwyg.TextEditor;
 
 import android.os.Bundle;
 import android.support.design.widget.TabLayout;
@@ -6,6 +6,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
+import com.github.irshulx.wysiwyg.R;
 import com.github.irshulx.wysiwyg.Utilities.RendererPagerAdapter;
 
 public class RenderTestActivity extends AppCompatActivity {

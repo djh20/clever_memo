@@ -22,6 +22,7 @@ android {
         versionCode 9
         versionName "3.0.3"
         vectorDrawables.useSupportLibrary = true
+        multiDexEnabled true
     }
     buildTypes {
         release {
@@ -41,6 +42,10 @@ tasks.withType(Javadoc).all {
 
 dependencies {
     compile 'com.github.barteksc:pdfium-android:1.9.0'
+    //
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support:multidex:1.0.3'
+    //
     implementation 'com.github.yukuku:ambilwarna:2.0.1'
     implementation 'in.gauriinfotech:commons:1.0.8'
     implementation 'com.moxun:tagcloudlib:1.2.0'
@@ -66,6 +71,10 @@ dependencies {
     implementation 'com.github.irshulx:laser-native-editor:3.0.4'
     implementation 'com.github.duanhong169:colorpicker:1.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
+    implementation 'com.twitter.penguin:korean-text:4.4.4'
+    implementation 'com.itextpdf:itextg:5.5.10'
+
+
     configurations.all {
         resolutionStrategy.eachDependency { DependencyResolveDetails details ->
             def requested = details.requested

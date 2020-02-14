@@ -1,16 +1,17 @@
 package com.github.irshulx.wysiwyg;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
-import android.util.Log;
-import android.util.LogPrinter;
 import android.view.MenuItem;
 import android.view.View;
 
@@ -26,14 +27,20 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 
+import com.github.irshulx.wysiwyg.NLP.MemoLoadManager;
+import com.github.irshulx.wysiwyg.NLP.Twitter;
+import com.github.irshulx.wysiwyg.TextEditor.EditorTestActivity;
 
 
 public class FirstActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
+    private Twitter twitter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        twitter = (Twitter) getIntent().getSerializableExtra("twitter"); // Twitter 객체 받아오기
+
         setContentView(R.layout.activity_first);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -52,29 +59,31 @@ public class FirstActivity extends AppCompatActivity {
                     {
                         if(pos == 0)
                         {
-                            startActivity(new Intent(getApplicationContext(),EditorTestActivity.class));
+                            startActivity(new Intent(getApplicationContext(), EditorTestActivity.class));
                         }
                         else
                         {
-                            startActivity(new Intent(getApplicationContext(),PDFCanvas.class));
+                            if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED) {
+                                if (ActivityCompat.shouldShowRequestPermissionRationale(FirstActivity.this,Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                                } else {
+                                    ActivityCompat.requestPermissions(FirstActivity.this,
+                                            new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                                            1);
+                                }
+                            }
+                            else {
+                                startActivity(new Intent(getApplicationContext(), MemoLoadManager.class));
+                            }
                         }
                     }
                 });
-
                 AlertDialog alertDialog = builder.create();
                 alertDialog.show();
-
             }
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow,
-                 R.id.nav_share, R.id.nav_send)
-                .setDrawerLayout(drawer)
-                .build();
+        mAppBarConfiguration = new AppBarConfiguration.Builder(R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow, R.id.nav_share, R.id.nav_send).setDrawerLayout(drawer).build();
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
@@ -84,7 +93,6 @@ public class FirstActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.first, menu);
         return true;
     }

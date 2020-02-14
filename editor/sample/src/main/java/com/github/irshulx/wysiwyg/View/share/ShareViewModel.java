@@ -1,16 +1,16 @@
-package com.github.irshulx.wysiwyg.ui.treeCategroy;
+package com.github.irshulx.wysiwyg.View.share;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.ViewModel;
 
-public class TreeViewModel extends ViewModel {
+public class ShareViewModel extends ViewModel {
 
     private MutableLiveData<String> mText;
 
-    public TreeViewModel() {
+    public ShareViewModel() {
         mText = new MutableLiveData<>();
-        mText.setValue("This is tools fragment");
+        mText.setValue("");
     }
 
     public LiveData<String> getText() {

@@ -1,4 +1,4 @@
-package com.github.irshulx.wysiwyg;
+package com.github.irshulx.wysiwyg.TextEditor;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -13,18 +13,14 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.Editable;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.github.irshulx.Editor;
-import com.github.irshulx.EditorListener;
-import com.github.irshulx.models.EditorContent;
 import com.github.irshulx.models.EditorTextStyle;
+import com.github.irshulx.wysiwyg.R;
 
 import java.io.IOException;
 import java.util.HashMap;
