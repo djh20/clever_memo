@@ -5,6 +5,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteQuery;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -27,19 +30,24 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 
-import com.github.irshulx.wysiwyg.NLP.MemoLoadManager;
+import com.github.irshulx.wysiwyg.Database.DatabaseManager;
+import com.github.irshulx.wysiwyg.NLP.NLPManager;
+import com.github.irshulx.wysiwyg.NLP.NewMemoLoadManager;
 import com.github.irshulx.wysiwyg.NLP.Twitter;
+import com.github.irshulx.wysiwyg.ui.CategorySelectActivity;
 
 
 public class FirstActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
-    private Twitter twitter;
+    private NLPManager nlpManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        twitter = (Twitter) getIntent().getSerializableExtra("twitter"); // Twitter 객체 받아오기
+        Intent intent = new Intent(this, CategorySelectActivity.class);
+        startActivity(intent);
 
+        nlpManager = NLPManager.getInstance();
         setContentView(R.layout.activity_first);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -68,10 +76,12 @@ public class FirstActivity extends AppCompatActivity {
                                     ActivityCompat.requestPermissions(FirstActivity.this,
                                             new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                                             1);
+
                                 }
                             }
                             else {
-                                startActivity(new Intent(getApplicationContext(), MemoLoadManager.class));
+                                Intent intent = new Intent(getApplicationContext(), NewMemoLoadManager.class);
+                                startActivity(intent);
                             }
                         }
                     }
@@ -83,7 +93,7 @@ public class FirstActivity extends AppCompatActivity {
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
+        // menu should be considered as top level destinations.w
         mAppBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow,
                  R.id.nav_share, R.id.nav_send)

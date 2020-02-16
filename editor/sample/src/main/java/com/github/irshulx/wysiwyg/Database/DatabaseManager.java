@@ -5,26 +5,37 @@ import android.database.Cursor;
 import android.database.DatabaseErrorHandler;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.provider.ContactsContract;
 import android.support.annotation.Nullable;
 import android.util.Log;
+
+import java.io.Serializable;
+
+//싱글톤 패턴
 public class DatabaseManager extends SQLiteOpenHelper {
+
+    private static DatabaseManager databaseManager = null;
 
     private static final String DATABASE_NAME = "database";
     private static final int DATABASE_VERSION = 1;
 
-
-    //테이블
-    private static final String TABLE_MEMO = "MEMO";
-
-    public DatabaseManager(Context context) {
+    private DatabaseManager(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
-        onCreate(getWritableDatabase());
+    }
+
+    public static DatabaseManager getInstance(){
+        return databaseManager;
+    }
+
+    public static DatabaseManager getInstance(Context context){
+        if(databaseManager == null) {
+            databaseManager = new DatabaseManager(context);
+        }
+        return databaseManager;
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        Log.e("database", "생성중");
-
         db.execSQL("Create TABLE IF NOT EXISTS Category ("
                 + "name CHAR(20) PRIMARY KEY NOT NULL,"
                 + "parent CHAR(20),"
@@ -33,7 +44,7 @@ public class DatabaseManager extends SQLiteOpenHelper {
 
         db.execSQL("Create TABLE IF NOT EXISTS Memo ("
                 + "memoIndex INT PRIMARY KEY NOT NULL,"
-                + "memmName CHAR(20) NOT NULL,"
+                + "memoName CHAR(20) NOT NULL,"
                 + "category CHAR(20),"
                 + "updateDate CHAR(40),"
                 + "addedDate CHAR(20),"
@@ -42,9 +53,11 @@ public class DatabaseManager extends SQLiteOpenHelper {
         );
 
         db.execSQL("Create TABLE IF NOT EXISTS Tf ("
-                + "memoIndex INT PRIMARY KEY NOT NULL,"
+                + "memoIndex INT NOT NULL,"
                 + "word CHAR(20) NOT NULL,"
-                + "tf INT)"
+                + "tf INT," +
+                "  PRIMARY KEY (memoIndex, word))"
+
         );
 
         db.execSQL("Create TABLE IF NOT EXISTS Word ("
@@ -61,12 +74,8 @@ public class DatabaseManager extends SQLiteOpenHelper {
 
     }
 
-    public void selectSQL(String sql){
-        Log.e("진입", "셀렉 진입");
-        Cursor c = getReadableDatabase().rawQuery(sql, null);
-        while(c.moveToNext()){
-            Log.e("sql" , c.getString(0));
-        }
+    public Cursor selectSQL(String sql){
+        return getReadableDatabase().rawQuery(sql, null);
 
     }
 
