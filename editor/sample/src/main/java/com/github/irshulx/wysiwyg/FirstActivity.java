@@ -15,21 +15,24 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
-import android.util.Log;
-import android.util.LogPrinter;
 import android.view.MenuItem;
 import android.view.View;
 
 import android.view.Menu;
 import android.widget.ExpandableListView;
+import android.widget.ListAdapter;
+import android.widget.Toast;
 
+import com.github.irshulx.wysiwyg.Model.CategoryStructure;
 import com.github.irshulx.wysiwyg.Model.ChildModel;
 import com.github.irshulx.wysiwyg.Model.ParentsModel;
+import com.github.irshulx.wysiwyg.ui.MainScreen;
 import com.github.irshulx.wysiwyg.ui.drawer.ExpandableNavigationListView;
+import com.github.irshulx.wysiwyg.ui.itemList.ItemAdapter;
+import com.github.irshulx.wysiwyg.ui.itemList.ItemListFragment;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 
 public class FirstActivity extends AppCompatActivity
@@ -41,6 +44,8 @@ public class FirstActivity extends AppCompatActivity
     private DrawerLayout drawer;
     private ActionBarDrawerToggle toggle;
 
+    private String[] items;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +55,12 @@ public class FirstActivity extends AppCompatActivity
         FloatingActionButton fab = findViewById(R.id.fab);
         final Context context = FirstActivity.this;
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        /*default main screen*/
+        final MainScreen main = new MainScreen();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.frame, main)
+                .commit();
 
         /* fab */
         fab.setOnClickListener(new View.OnClickListener() {
@@ -77,9 +88,28 @@ public class FirstActivity extends AppCompatActivity
             }
         });
 
+        /*category name set*/
+        ArrayList<String> detail1nd = new ArrayList<>(Arrays.asList("C++","운영체제","네트워크","JAVA","LINUX"));
+        ArrayList<String> detail2nd = new ArrayList<>(Arrays.asList("취미","여행","드라마"));
+        CategoryStructure category1st = new CategoryStructure("공부");
+        CategoryStructure category2nd = new CategoryStructure("일기");
+        category1st.setDetailCategory(detail1nd);
+        category2nd.setDetailCategory(detail2nd);
+        System.out.println("======================================="+category1st.getName());
+
+        /*make a parentsModel*/
+        ParentsModel parents1st = new ParentsModel(category1st.getName(),R.drawable.add, true);
+        for(int i=0;i<category1st.getDetailSize();i++)
+            parents1st.addChildModel(new ChildModel(category1st.getDetailCategory().get(i)));
+
+        ParentsModel parents2nd = new ParentsModel(category2nd.getName(),R.drawable.add, true);
+        for(int i=0;i<category2nd.getDetailSize();i++)
+            parents2nd.addChildModel(new ChildModel(category2nd.getDetailCategory().get(i)));
+
+
         /* drawer */
-        List<String> items = new ArrayList<String>( // test
-                Arrays.asList("item0","item1"));
+//        List<String> items = new ArrayList<String>( // test
+//                Arrays.asList("item0","item1"));
 
         navigationExpandableListView = (ExpandableNavigationListView) findViewById(R.id.expandable_navigation);
 
@@ -91,19 +121,16 @@ public class FirstActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-        ParentsModel categoryModel = new ParentsModel("Test2", R.drawable.add, true);
-        for(int i=0;i<items.size();i++){
-            categoryModel.addChildModel(new ChildModel(items.get(i)));
-        }
+
 
         navigationExpandableListView // category, item
                 .init(this)
-                .addParentsModel(new ParentsModel("Test0"))
-                .addParentsModel(new ParentsModel("Test1", R.drawable.newbackground, false, true, false))
-                .addParentsModel(categoryModel)
-                .addParentsModel(new ParentsModel("Test3"))
-                .addParentsModel(new ParentsModel("Test4"))
-                .addParentsModel(new ParentsModel("Test5"))
+//                .addParentsModel(new ParentsModel("Test0"))
+//                .addParentsModel(new ParentsModel("Test1", R.drawable.newbackground, false, true, false))
+//                .addParentsModel(categoryModel)
+                .addParentsModel(parents1st)
+                .addParentsModel(parents2nd)
+                .addParentsModel(new ParentsModel("HOME"))
                 .build()
                 .addOnGroupClickListener(new ExpandableListView.OnGroupClickListener() { // action of a selected category
                     @Override
@@ -112,11 +139,14 @@ public class FirstActivity extends AppCompatActivity
 
                         //drawer.closeDrawer(GravityCompat.START);
                         if (id == 0) {
-                            drawer.closeDrawer(GravityCompat.START);
+//                            drawer.closeDrawer(GravityCompat.START); // close from right to left
                         } else if (id == 1) {
-                            drawer.closeDrawer(GravityCompat.START);
-                        } else if (id == 2) {
 //                            drawer.closeDrawer(GravityCompat.START);
+                        } else if (id == 2) {
+                            getSupportFragmentManager().beginTransaction()
+                                    .replace(R.id.frame, main)
+                                    .commit();
+                            drawer.closeDrawer(GravityCompat.START);
                         } else if (id == 3) {
                             drawer.closeDrawer(GravityCompat.START);
                         } else if (id == 4) {
@@ -131,8 +161,13 @@ public class FirstActivity extends AppCompatActivity
                     @Override
                     public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) { // action of a selecetd item after GroupAction
                         navigationExpandableListView.setSelected(groupPosition, childPosition);
-
+                        String[] listItem = {Integer.toString(groupPosition), Integer.toString(childPosition)};
                         if (id == 0) {
+                            ItemListFragment itemListFragment = new ItemListFragment();
+                            items = listItem;
+                            getSupportFragmentManager().beginTransaction()
+                                    .replace(R.id.frame, itemListFragment)
+                                    .commit();
                         } else if (id == 1) {
                         } else if (id == 2) {
                         } else if (id == 3) {
@@ -159,18 +194,18 @@ public class FirstActivity extends AppCompatActivity
         switch (item.getItemId())
         {
             case R.id.action_tree :
-                Fragment tree = getSupportFragmentManager().findFragmentById(R.id.tree);
-                FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-                if(tree.isHidden())
-                {
-                    ft.show(tree);
-                }
-                else
-                {
-                    ft.hide(tree);
-                }
-                ft.commit();
-                return true;
+//                Fragment tree = getSupportFragmentManager().findFragmentById(R.id.tree);
+//                FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+//                if(tree.isHidden())
+//                {
+//                    ft.show(tree);
+//                }
+//                else
+//                {
+//                    ft.hide(tree);
+//                }
+//                ft.commit();
+//                return true;
             case R.id.action_settings :
                 return true;
             default:
@@ -200,6 +235,10 @@ public class FirstActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public String[] getData(){
+        return items;
     }
 }
 

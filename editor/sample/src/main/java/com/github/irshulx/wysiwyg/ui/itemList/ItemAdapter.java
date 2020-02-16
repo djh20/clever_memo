@@ -12,17 +12,18 @@ import android.widget.TextView;
 
 import com.github.irshulx.wysiwyg.R;
 
-public class ImageAdapter extends ArrayAdapter<String> {
+public class ItemAdapter extends ArrayAdapter<String> {
 
-    ImageAdapter(Context context, String[] items){
+    public ItemAdapter(Context context, String[] items){
         super(context, R.layout.frag_itemlist_item, items);
     }
 
     @NonNull
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-        LayoutInflater imageInflater = LayoutInflater.from(getContext());
-        View view = imageInflater.inflate(R.layout.frag_itemlist_item, parent, false);
+
+        LayoutInflater itemInflater = LayoutInflater.from(getContext());
+        View view = itemInflater.inflate(R.layout.frag_itemlist_item, parent, false);
         String item = getItem(position);
         TextView itemTitle = (TextView) view.findViewById(R.id.item_title);
         TextView itemDetail = (TextView) view.findViewById(R.id.item_detail);
