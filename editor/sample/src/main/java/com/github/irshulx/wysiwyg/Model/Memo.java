@@ -1,5 +1,7 @@
 package com.github.irshulx.wysiwyg.Model;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Vector;
 
 public class Memo {
@@ -20,6 +22,20 @@ public class Memo {
         this.updateDate = updateDate;
         this.addedDate = addedDate;
         this.wordBagPool = new Vector<WordBag>();
+        this.numPage = numPage;
+    }
+
+    public Memo(int memoIndex, String memoName, String imagePath, int numPage){
+        SimpleDateFormat dateFormat = new SimpleDateFormat ( "yyyy년 MM월dd일 HH시mm분ss초");
+        Date date = new Date();
+        String dateString = dateFormat.format(date);
+        this.memoIndex = memoIndex;
+        this.memoName = memoName;
+        this.imagePath = imagePath;
+        category = null;
+        updateDate = dateString;
+        addedDate = dateString;
+        wordBagPool = new Vector<WordBag>();
         this.numPage = numPage;
     }
 
@@ -85,5 +101,9 @@ public class Memo {
 
     public void setNumPage(int numPage) {
         this.numPage = numPage;
+    }
+
+    public void addWordBag(Word word, int frequency){
+        wordBagPool.add(new WordBag(word, frequency));
     }
 }

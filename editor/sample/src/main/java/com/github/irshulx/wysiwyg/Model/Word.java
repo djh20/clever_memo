@@ -13,6 +13,12 @@ public class Word {
         this.idf = idf;
     }
 
+    public Word(String word, int documecntFrequency, int globalFrequency) {
+        this.word = word;
+        this.documecntFrequency = documecntFrequency;
+        this.globalFrequency = globalFrequency;
+    }
+
     public String getWord() {
         return word;
     }
@@ -44,4 +50,9 @@ public class Word {
     public void setIdf(double idf) {
         this.idf = idf;
     }
+
+    public void increaseDocumentFrequency(){ documecntFrequency++;};
+    public void addGlobalFrequency(int frequency){ globalFrequency += frequency;};
+
+
 }

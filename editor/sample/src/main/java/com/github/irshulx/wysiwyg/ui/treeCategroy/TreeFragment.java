@@ -10,7 +10,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.arch.lifecycle.ViewModelProviders;
 
-import com.github.irshulx.wysiwyg.Database.DatabaseManager;
 import com.github.irshulx.wysiwyg.R;
 import com.unnamed.b.atv.model.TreeNode;
 import com.unnamed.b.atv.view.AndroidTreeView;
@@ -19,29 +18,20 @@ import com.unnamed.b.atv.view.AndroidTreeView;
 public class TreeFragment extends Fragment {
 
     private AndroidTreeView tView;
-    DatabaseManager dbManager;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        dbManager = new DatabaseManager(getActivity());
         View rootView = inflater.inflate(R.layout.fragment_tree, container, false);
         ViewGroup containerView = (ViewGroup) rootView.findViewById(R.id.container);
         TreeNode root = TreeNode.root();
         TreeNode computerRoot = new TreeNode(new IconTreeItemHolder.IconTreeItem("Root",true));
         TreeNode myDocuments = new TreeNode(new IconTreeItemHolder.IconTreeItem("공부",true));
-        final TreeNode downloads = new TreeNode(new IconTreeItemHolder.IconTreeItem("C++",false));
-        downloads.setClickListener(new TreeNode.TreeNodeClickListener(){
-            @Override
-            public void onClick(TreeNode node, Object value) {
-                //pdf editor
-
-            }
-        });
+        TreeNode downloads = new TreeNode(new IconTreeItemHolder.IconTreeItem("C++",false));
         TreeNode file1 = new TreeNode(new IconTreeItemHolder.IconTreeItem("운영체제",false));
         TreeNode file2 = new TreeNode(new IconTreeItemHolder.IconTreeItem("네트워크",false));
         TreeNode file3 = new TreeNode(new IconTreeItemHolder.IconTreeItem("JAVA",false));
         TreeNode file4 = new TreeNode(new IconTreeItemHolder.IconTreeItem("Linux",false));
-      //  fillDownloadsFolder(downloads);
+        //  fillDownloadsFolder(downloads);
 
         TreeNode myMedia = new TreeNode(new IconTreeItemHolder.IconTreeItem("일기",true));
         TreeNode photo1 = new TreeNode(new IconTreeItemHolder.IconTreeItem("취미",false));
@@ -87,4 +77,3 @@ public class TreeFragment extends Fragment {
         outState.putString("tState", tView.getSaveState());
     }
 }
-

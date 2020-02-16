@@ -1,14 +1,25 @@
 package com.github.irshulx.wysiwyg.NLP;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.os.ParcelFileDescriptor;
+import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,31 +29,65 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import com.github.irshulx.wysiwyg.Database.DatabaseManager;
+import com.github.irshulx.wysiwyg.Model.Noun;
+import com.github.irshulx.wysiwyg.NLP.Twitter;
 import com.github.irshulx.wysiwyg.R;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.MyPaintView;
+import com.github.irshulx.wysiwyg.Utilities.RealPathUtil;
+import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
+
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+
+import scala.util.control.TailCalls;
 import yuku.ambilwarna.AmbilWarnaDialog;
 
 
 public class MemoLoadManager extends AppCompatActivity {
 
+    private static final String TAG = "MainActivity";
     private static final int FILE_SELECT_CODE = 0;
+    String imageFilePath;
     Uri uri;
     int pagew, pageh;
     MyPaintView paintArr[];
     int pdfCount;
     int lastTouch;
     String memoName;
-    int tColor=0;
-    File storage; //내부저장소 경로
-    DatabaseManager dbManager;
+    int tColor = 0;
+    NLPManager nlpManager;
+    static final int LOAD_PAGE = 10;
+    int loadedPageIndex;
+
+    final Handler handler = new Handler() {
+        public void handleMessage(Message msg) {
+            openNewMemo();
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_pdfcanvas);
+        nlpManager = NLPManager.getInstance();
+        imageFilePath = getFilesDir().toString() + "/memoImage";
+        showFileChooser();
+        Log.e("끝남", "ㅇㅁㄴㅇㄴㅁ");
+    }
 
 
     public void showFileChooser() {
@@ -69,25 +114,60 @@ public class MemoLoadManager extends AppCompatActivity {
             case FILE_SELECT_CODE:
                 if (resultCode == RESULT_OK) {
                     uri = data.getData();
-                    memoName = uri.getLastPathSegment();
-                        openNewMemo();
+                    File file = new File(RealPathUtil.getRealPath(getApplicationContext(), uri));
+                    memoName = file.getName();
+                    if (isExistMemo()) {
+                        Toast.makeText(getApplicationContext(), "이미 존재하는 메모입니다", Toast.LENGTH_SHORT).show();
+                        finish();
+                    } else {
+                        makeFolder();
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Vector<Noun> nouns = null;
+                                try {
+                                    nouns = nlpManager.getResultFrequencyDataFromPdfFilePath(RealPathUtil.getRealPath(getApplicationContext(), uri));
+                                    nlpManager.pushNewMemoAndResultFrequency(memoName, nouns, pdfCount);
+//                                    nlpManager.saveMemoInDatabase();
+//                                    nlpManager.saveWordInDatabase();
+//                                    nlpManager.printWordDB();
+//                                    nlpManager.printTfDB();
+                                } catch (FileNotFoundException e) {
+                                    Log.e("Error", e.getMessage());
+                                }
+                            }
+                        }).start();
+
+                        new Thread() {
+                            public void run() {
+                                Message msg = handler.obtainMessage();
+                                handler.sendMessage(msg);
+                            }
+                        }.start();
+                    }
                 }
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_pdfcanvas);
-        storage = getCacheDir();
-        dbManager = new DatabaseManager(getApplicationContext());
-        showFileChooser();
+    boolean isExistMemo() {
+        String path = imageFilePath + "/" + memoName;
+        File file = new File(path);
+        if (file.exists() && file.isDirectory())
+            return true;
+        return false;
+    }
+
+    void makeFolder() {
+        File file = new File(imageFilePath, memoName);
+        if (!file.exists()) {
+            file.mkdirs();
+        }
     }
 
     void openNewMemo() {
-        RelativeLayout scroll = findViewById(R.id.scroll);
+        final RelativeLayout scroll = findViewById(R.id.scroll);
         ParcelFileDescriptor fd = null;
         try {
             fd = this.getContentResolver().openFileDescriptor(uri, "r");
@@ -95,136 +175,83 @@ public class MemoLoadManager extends AppCompatActivity {
             e.printStackTrace();
         }
         ;
-        int pageNum = 0;
+
         PdfiumCore pdfiumCore = new PdfiumCore(this);
         try {
             PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
             pdfCount = pdfiumCore.getPageCount(pdfDocument);
             paintArr = new MyPaintView[pdfCount];
-
-            for(int i = 0 ; i < pdfCount ; i++){
+            int pageNum = 0;
+            for (int i = 0; i < pdfCount; i++) {
                 pdfiumCore.openPage(pdfDocument, pageNum);
 
                 int width = pdfiumCore.getPageWidthPoint(pdfDocument, pageNum);
                 int height = pdfiumCore.getPageHeightPoint(pdfDocument, pageNum);
 
-                if(width>0&&height>0){
-                    pagew = scroll.getMeasuredWidth()-50;
-                    pageh = height*pagew/width;
-                    Log.e("w" , pagew+"");
-                    Log.e("h" , pageh+"");
-                    Bitmap bitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
-                    Log.e("info", pagew + " " + pageh);
-
+                if (width > 0 && height > 0) {
+                    pagew = scroll.getMeasuredWidth() - 50;
+                    pageh = height * pagew / width;
+                    final Bitmap bitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
                     pdfiumCore.renderPageBitmap(pdfDocument, bitmap, pageNum, 0, 0,
-                            scroll.getMeasuredWidth(), height*scroll.getMeasuredWidth()/width);
-                    MyPaintView img = new MyPaintView(this,null,bitmap,pageh, pagew);
+                            scroll.getMeasuredWidth(), height * scroll.getMeasuredWidth() / width);
+                    final int index = i;
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            saveImage(bitmap, index);
+                        }
+                    });
+
+                    MyPaintView img = new MyPaintView(getApplicationContext(), null, bitmap, i, pagew, pageh);
                     img.setId(i);
                     paintArr[i] = img;
-                    final int lastNum = i;
-                    img.setOnTouchListener(new View.OnTouchListener(){
+                    final int nowTouch = i;
+                    img.setOnTouchListener(new View.OnTouchListener() {
                         @Override
                         public boolean onTouch(View v, MotionEvent event) {
-                            lastTouch = lastNum;
+                            lastTouch = nowTouch;
                             return false;
                         }
                     });
                     RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                    layoutParams.addRule(RelativeLayout.BELOW, i-1);
+                    layoutParams.addRule(RelativeLayout.BELOW, i - 1);
                     img.setLayoutParams(layoutParams);
                     scroll.addView(img);
                     pageNum++;
+                    loadedPageIndex = i;
                 }
+
             }
             pdfiumCore.closeDocument(pdfDocument);
-        } catch(IOException ex) {
+
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        new AlertDialog.Builder(this)
-                .setTitle("메모 종료")
-                .setMessage("메모를 종료하시겠습니까?")
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        showSaveDialog();
-                    }
-                })
-                .setNegativeButton("No", null)
-                .show();
-    }
-
-    private void showSaveDialog(){
-        Log.e("진입","showdialog");
-        AlertDialog.Builder saveDialog = new AlertDialog.Builder(this);
-        saveDialog.setTitle("Save");
-        saveDialog.setMessage("저장할 메모의 제목을 입력해주세요");
-        final EditText et = new EditText(this);
-        saveDialog.setView(et);
-
-        saveDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                String value = et.getText().toString();
-                File dir = new File(storage,value);
-                if(!dir.exists())
-                    dir.mkdirs();
-                Log.e("경로",dir.getAbsolutePath());
-                for(int i = 0 ; i < pdfCount ; i++)
-                {
-                    saveBitmapToPNG(paintArr[i].getCanvasBit(), i+"", dir);//각 페이지의 캔버스마다 bitmap
-                }
-                dbManager.selectSQL("select * from TempImage");
-                dialog.dismiss();
-                finish();
-            }
-        });
-
-        saveDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-        saveDialog.show();
-    }
-
-    private void saveBitmapToPNG(Bitmap bitmap, String name, File dir) {
-
-        String fileName = name + ".png";
-
-        File tempFile = new File(dir, fileName);
-
+    void saveImage(Bitmap bitmap, int pageNum) {
         try {
-            tempFile.createNewFile();
-            FileOutputStream out = new FileOutputStream(tempFile);
+            String path = imageFilePath + "/" + memoName;
+            File file = new File(path + "/" + pageNum);
+            FileOutputStream out = new FileOutputStream(file);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            out.flush();
             out.close();
-            String sql = "insert into TempImage (path) values ('"+tempFile.getAbsolutePath()+"')";
-            dbManager.insertSQL(sql);
-
-
-        } catch (FileNotFoundException e) {
-            Log.e("MyTag","FileNotFoundException : " + e.getMessage());
-        } catch (IOException e) {
-            Log.e("MyTag","IOException : " + e.getMessage());
+        } catch (Exception e) {
+            Log.e("Error", e.getMessage());
         }
     }
+
     @Override
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
+    public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.pdfmenu, menu);
         return true;
     }
+
     @Override
-    public boolean onOptionsItemSelected (MenuItem item)
-    {
-        switch(item.getItemId())
-        {
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
             case R.id.stroke:
                 showWriteSetup();
                 break;
@@ -237,25 +264,26 @@ public class MemoLoadManager extends AppCompatActivity {
             case R.id.redo:
                 paintArr[lastTouch].onClickRedo();
                 break;
-            case R.id.save:
+            case R.id.erase:
+                paintArr[lastTouch].setEraseMode();
                 break;
         }
         return super.onOptionsItemSelected(item);
     }
+
     private void showWriteSetup() {
-        final EditText editText=new EditText(this);
+        final EditText editText = new EditText(this);
         editText.setInputType(InputType.TYPE_CLASS_NUMBER);
 
 
-        AlertDialog.Builder builder=new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("AlertDialog Title");
         builder.setMessage("굵기 입력");
         builder.setView(editText);
         builder.setPositiveButton("입력",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        for(int i = 0 ; i < pdfCount ; i++)
-                        {
+                        for (int i = 0; i < pdfCount; i++) {
                             paintArr[i].setStrokeWidth(Integer.parseInt(editText.getText().toString()));
                         }
 
@@ -275,13 +303,11 @@ public class MemoLoadManager extends AppCompatActivity {
         AmbilWarnaDialog colorPicker = new AmbilWarnaDialog(this, tColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
             @Override
             public void onCancel(AmbilWarnaDialog dialog) {
-
             }
 
             @Override
             public void onOk(AmbilWarnaDialog dialog, int color) {
-                for(int i = 0 ; i < pdfCount ; i++)
-                {
+                for (int i = 0; i < pdfCount; i++) {
                     paintArr[i].setColor(color);
                 }
             }
@@ -289,6 +315,8 @@ public class MemoLoadManager extends AppCompatActivity {
         colorPicker.show();
     }
 }
+
+
 
 ////TODO 형태소분석 클래스에 합병
 //    void analisysPDF(Intent data){
@@ -325,7 +353,7 @@ public class MemoLoadManager extends AppCompatActivity {
 //
 //        try {
 //            pdfCount = pageNum;
-//            paintArr = new MemoLoadManager.MyPaintView[pageNum];
+//            paintArr = new NewMemoLoadManager.MyPaintView[pageNum];
 //            for(int i = 0 ; i < pageNum; i++){
 //                BitmapFactory.Options option = new BitmapFactory.Options();
 //                option.inPreferredConfig = Bitmap.Config.RGB_565;
@@ -334,7 +362,7 @@ public class MemoLoadManager extends AppCompatActivity {
 //                pagew = bitmap.getWidth();
 //
 //
-//                MemoLoadManager.MyPaintView img = new MemoLoadManager.MyPaintView(this,null,bitmap);
+//                NewMemoLoadManager.MyPaintView img = new NewMemoLoadManager.MyPaintView(this,null,bitmap);
 //                img.setId(i);
 //                paintArr[i] = img;
 //                final int lastNum = i;
