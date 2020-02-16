@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorPrimary"
-    tools:context="com.github.irshulx.wysiwyg.TextEditor.SerializedFragment">
+    tools:context="com.github.irshulx.wysiwyg.SerializedFragment">
 
     <TextView
         android:layout_width="match_parent"

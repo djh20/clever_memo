@@ -5,9 +5,9 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 
-import com.github.irshulx.wysiwyg.TextEditor.HTMLRenderedFragment;
-import com.github.irshulx.wysiwyg.TextEditor.PreviewFragment;
-import com.github.irshulx.wysiwyg.TextEditor.SerializedFragment;
+import com.github.irshulx.wysiwyg.HTMLRenderedFragment;
+import com.github.irshulx.wysiwyg.PreviewFragment;
+import com.github.irshulx.wysiwyg.SerializedFragment;
 
 /**
  * Created by mkallingal on 6/12/2016.

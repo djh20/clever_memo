@@ -13,7 +13,10 @@ import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.os.ParcelFileDescriptor;
+import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.AttributeSet;
@@ -28,6 +31,8 @@ import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.github.irshulx.wysiwyg.Database.DatabaseManager;
+import com.github.irshulx.wysiwyg.Model.Noun;
 import com.github.irshulx.wysiwyg.NLP.Twitter;
 import com.github.irshulx.wysiwyg.R;
 import com.github.irshulx.wysiwyg.Utilities.RealPathUtil;
@@ -45,12 +50,13 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import scala.util.control.TailCalls;
 import yuku.ambilwarna.AmbilWarnaDialog;
 
 
-public class MemoLoadManager extends AppCompatActivity {
+public class NewMemoLoadManager extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final int FILE_SELECT_CODE = 0;
@@ -62,6 +68,29 @@ public class MemoLoadManager extends AppCompatActivity {
     int lastTouch;
     String memoName;
     int tColor=0;
+    NLPManager nlpManager;
+    static final int LOAD_PAGE = 10;
+    int loadedPageIndex;
+
+    final Handler handler = new Handler()
+    {
+        public void handleMessage(Message msg)
+        {
+            openNewMemo();
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_pdfcanvas);
+        nlpManager = NLPManager.getInstance();
+        imageFilePath = getFilesDir().toString()+"/memoImage";
+        showFileChooser();
+        Log.e("끝남", "ㅇㅁㄴㅇㄴㅁ");
+    }
+
+
 
     public void showFileChooser() {
         Intent intent = new Intent();
@@ -73,7 +102,6 @@ public class MemoLoadManager extends AppCompatActivity {
             startActivityForResult(
                     Intent.createChooser(intent, "Select a File"),
                     FILE_SELECT_CODE);
-            Log.e("dsad", "not here");
 
         } catch (Exception e) {
             Log.e("error", e.getMessage());
@@ -88,14 +116,39 @@ public class MemoLoadManager extends AppCompatActivity {
             case FILE_SELECT_CODE:
                 if (resultCode == RESULT_OK) {
                     uri = data.getData();
-                    memoName = uri.getLastPathSegment();
+                    File file = new File(RealPathUtil.getRealPath(getApplicationContext(), uri));
+                    memoName = file.getName();
                     if(isExistMemo()) {
                         Toast.makeText(getApplicationContext(), "이미 존재하는 메모입니다", Toast.LENGTH_SHORT).show();
                         finish();
                     }
                     else{
                         makeFolder();
-                        openNewMemo();
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Vector<Noun> nouns = null;
+                                try {
+                                    nouns = nlpManager.getResultFrequencyDataFromPdfFilePath(RealPathUtil.getRealPath(getApplicationContext(), uri));
+                                    nlpManager.pushNewMemoAndResultFrequency(memoName, nouns, pdfCount);
+//                                    nlpManager.saveMemoInDatabase();
+//                                    nlpManager.saveWordInDatabase();
+//                                    nlpManager.printWordDB();
+//                                    nlpManager.printTfDB();
+                                } catch (FileNotFoundException e) {
+                                    Log.e("Error", e.getMessage());
+                                }
+                            }
+                        }).start();
+
+                        new Thread()
+                        {
+                            public void run()
+                            {
+                                Message msg = handler.obtainMessage();
+                                handler.sendMessage(msg);
+                            }
+                        }.start();
                     }
                 }
                 break;
@@ -104,29 +157,21 @@ public class MemoLoadManager extends AppCompatActivity {
     }
 
     boolean isExistMemo(){
-        String path = getFilesDir().toString()+"/" + "memoImage/" +memoName;
+        String path = imageFilePath + "/" + memoName;
         File file = new File(path);
         if(file.exists() && file.isDirectory())
             return true;
         return false;
     }
     void makeFolder() {
-        String path = getFilesDir().toString()+"/" + "memoImage";
-        File file = new File(path,memoName);
+        File file = new File(imageFilePath,memoName);
         if(!file.exists()){
             file.mkdirs();
         }
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_pdfcanvas);
-        showFileChooser();
-    }
-
     void openNewMemo() {
-        RelativeLayout scroll = findViewById(R.id.scroll);
+        final RelativeLayout scroll = findViewById(R.id.scroll);
         ParcelFileDescriptor fd = null;
         try {
             fd = this.getContentResolver().openFileDescriptor(uri, "r");
@@ -134,14 +179,14 @@ public class MemoLoadManager extends AppCompatActivity {
             e.printStackTrace();
         }
         ;
-        int pageNum = 0;
+
         PdfiumCore pdfiumCore = new PdfiumCore(this);
         try {
             PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
             pdfCount = pdfiumCore.getPageCount(pdfDocument);
             paintArr = new MyPaintView[pdfCount];
-
-            for(int i = 0 ; i < pdfCount ; i++){
+            int pageNum = 0;
+            for(int i = 0 ; i < LOAD_PAGE ; i++){
                 pdfiumCore.openPage(pdfDocument, pageNum);
 
                 int width = pdfiumCore.getPageWidthPoint(pdfDocument, pageNum);
@@ -150,22 +195,25 @@ public class MemoLoadManager extends AppCompatActivity {
                 if(width>0&&height>0){
                     pagew = scroll.getMeasuredWidth()-50;
                     pageh = height*pagew/width;
-                    Log.e("w" , pagew+"");
-                    Log.e("h" , pageh+"");
-                    Bitmap bitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
-                    Log.e("info", pagew + " " + pageh);
-
+                    final Bitmap bitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
                     pdfiumCore.renderPageBitmap(pdfDocument, bitmap, pageNum, 0, 0,
                             scroll.getMeasuredWidth(), height*scroll.getMeasuredWidth()/width);
-                    saveImage(bitmap, i);
-                    MyPaintView img = new MyPaintView(this,null,bitmap);
+                    final int index = i;
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            saveImage(bitmap, index);
+                        }
+                    });
+
+                    MyPaintView img = new MyPaintView(getApplicationContext(),null,bitmap,i);
                     img.setId(i);
                     paintArr[i] = img;
-                    final int lastNum = i;
+                    final int nowTouch = i;
                     img.setOnTouchListener(new View.OnTouchListener(){
                         @Override
                         public boolean onTouch(View v, MotionEvent event) {
-                            lastTouch = lastNum;
+                            lastTouch = nowTouch;
                             return false;
                         }
                     });
@@ -174,6 +222,67 @@ public class MemoLoadManager extends AppCompatActivity {
                     img.setLayoutParams(layoutParams);
                     scroll.addView(img);
                     pageNum++;
+                    loadedPageIndex = i;
+                }
+
+            }
+            pdfiumCore.closeDocument(pdfDocument);
+
+        } catch(IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    void openNewMemo2(int firstLoad, int lastLoad) {
+        final RelativeLayout scroll = findViewById(R.id.scroll);
+        ParcelFileDescriptor fd = null;
+        try {
+            fd = this.getContentResolver().openFileDescriptor(uri, "r");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        ;
+
+        PdfiumCore pdfiumCore = new PdfiumCore(this);
+        try {
+            PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
+            pdfCount = pdfiumCore.getPageCount(pdfDocument);
+            paintArr = new MyPaintView[pdfCount];
+            for(int i = firstLoad ; i < lastLoad ; i++){
+                pdfiumCore.openPage(pdfDocument, i);
+
+                int width = pdfiumCore.getPageWidthPoint(pdfDocument, i);
+                int height = pdfiumCore.getPageHeightPoint(pdfDocument, i);
+
+                if(width>0&&height>0){
+                    pagew = scroll.getMeasuredWidth()-50;
+                    pageh = height*pagew/width;
+                    final Bitmap bitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
+                    pdfiumCore.renderPageBitmap(pdfDocument, bitmap, i, 0, 0,
+                            scroll.getMeasuredWidth(), height*scroll.getMeasuredWidth()/width);
+                    final int index = i;
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            saveImage(bitmap, index);
+                        }
+                    });
+
+                    MyPaintView img = new MyPaintView(getApplicationContext(),null,bitmap,i);
+                    img.setId(i);
+                    paintArr[i] = img;
+                    final int nowTouch = i;
+                    img.setOnTouchListener(new View.OnTouchListener(){
+                        @Override
+                        public boolean onTouch(View v, MotionEvent event) {
+                            lastTouch = nowTouch;
+                            return false;
+                        }
+                    });
+                    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    layoutParams.addRule(RelativeLayout.BELOW, i-1);
+                    img.setLayoutParams(layoutParams);
+                    scroll.addView(img);
                 }
             }
             pdfiumCore.closeDocument(pdfDocument);
@@ -184,7 +293,7 @@ public class MemoLoadManager extends AppCompatActivity {
 
     void saveImage(Bitmap bitmap, int pageNum){
         try {
-            String path = imageFilePath + memoName;
+            String path = imageFilePath + "/" + memoName;
             File file = new File(path +"/"+ pageNum);
             FileOutputStream out = new FileOutputStream(file);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
@@ -255,9 +364,7 @@ public class MemoLoadManager extends AppCompatActivity {
         AmbilWarnaDialog colorPicker = new AmbilWarnaDialog(this, tColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
             @Override
             public void onCancel(AmbilWarnaDialog dialog) {
-
             }
-
             @Override
             public void onOk(AmbilWarnaDialog dialog, int color) {
                 for(int i = 0 ; i < pdfCount ; i++)
@@ -278,8 +385,11 @@ public class MemoLoadManager extends AppCompatActivity {
         private ArrayList<Path> undonePaths = new ArrayList<Path>();
         private float mX, mY;
         private static final float TOUCH_TOLERANCE = 4;
+        int pageNum;
+        boolean eraseMode = false;
+        Path erasePath;
 
-        public MyPaintView(Context context, AttributeSet attributeSet, Bitmap mBit) {
+        public MyPaintView(Context context, AttributeSet attributeSet, Bitmap mBit, int pageNum) {
             super(context, attributeSet);
             mPaint = new Paint();
             mPaint.setAntiAlias(true);
@@ -292,6 +402,7 @@ public class MemoLoadManager extends AppCompatActivity {
             mPaint.setStrokeWidth(6);
             mPath = new Path();
             mCanvas = new Canvas();
+            this.pageNum = pageNum;
         }
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -308,27 +419,22 @@ public class MemoLoadManager extends AppCompatActivity {
 
         @Override
         protected void onDraw(Canvas canvas) {
-            if (mBit != null) {
-                Log.e("dd", "그립니다");
-                canvas.drawBitmap(mBit, 0, 0, null);
-            }
-            else{
-                Log.e("dd", "널입니다");
-            }
+            canvas.drawBitmap(mBit, 0, 0, null);
             getParent().requestDisallowInterceptTouchEvent(true);
-            super.onDraw(canvas);
             for (Path p : paths){
-                canvas.drawPath(p, mPaint);
+                mCanvas.drawPath(p, mPaint);
             }
-            canvas.drawPath(mPath, mPaint);
+            mCanvas.drawPath(mPath, mPaint);
+
         }
 
         public void onClickUndo () {
-            if (paths.size()>0) {
-                undonePaths.add(paths.remove(paths.size()-1));
-                invalidate();
-            }else{
-            }
+//            if (paths.size()>0) {
+//                undonePaths.add(paths.remove(paths.size()-1));
+//                invalidate();
+//            }else{
+//            }
+            eraseMode = !eraseMode;
         }
 
         public void onClickRedo (){
@@ -343,34 +449,70 @@ public class MemoLoadManager extends AppCompatActivity {
         public boolean onTouchEvent(MotionEvent event){
             float x = event.getX();
             float y = event.getY();
-            switch (event.getAction()){
-                case MotionEvent.ACTION_DOWN:
-                    undonePaths.clear();
-                    mPath.reset();
-                    mPath.moveTo(x, y);
-                    mX = x;
-                    mY = y;
-                    invalidate();
-                    break;
 
-                case MotionEvent.ACTION_MOVE:
-                    float dx = Math.abs(x - mX);
-                    float dy = Math.abs(y - mY);
-                    if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-                        mPath.quadTo(mX, mY, (x + mX)/2, (y + mY)/2);
+            if(eraseMode == false) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        undonePaths.clear();
+                        mPath.reset();
+                        mPath.moveTo(x, y);
                         mX = x;
                         mY = y;
-                    }
-                    invalidate();
-                    break;
+                        invalidate();
+                        break;
 
-                case MotionEvent.ACTION_UP:
-                    mPath.lineTo(mX, mY);
-                    mCanvas.drawPath(mPath, mPaint);
-                    paths.add(mPath);
-                    mPath = new Path();
-                    invalidate();
-                    break;
+                    case MotionEvent.ACTION_MOVE:
+                        float dx = Math.abs(x - mX);
+                        float dy = Math.abs(y - mY);
+                        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+                            mPath.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2);
+                            mX = x;
+                            mY = y;
+                        }
+                        invalidate();
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        mPath.lineTo(mX, mY);
+                        mCanvas.drawPath(mPath, mPaint);
+                        paths.add(mPath);
+                        mPath = new Path();
+                        invalidate();
+                        break;
+                }
+
+            }
+            else{
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        erasePath.reset();
+                        erasePath.moveTo(x, y);
+                        mX = x;
+                        mY = y;
+                        invalidate();
+                        break;
+
+                    case MotionEvent.ACTION_MOVE:
+                        float dx = Math.abs(x - mX);
+                        float dy = Math.abs(y - mY);
+                        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+                            mPath.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2);
+                            mX = x;
+                            mY = y;
+                        }
+                        invalidate();
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        mPath.lineTo(mX, mY);
+                        mCanvas.drawPath(mPath, mPaint);
+                        paths.add(mPath);
+                        mPath = new Path();
+                        invalidate();
+                        break;
+
+
+                }
             }
             return true;
         }
@@ -421,7 +563,7 @@ public class MemoLoadManager extends AppCompatActivity {
 //
 //        try {
 //            pdfCount = pageNum;
-//            paintArr = new MemoLoadManager.MyPaintView[pageNum];
+//            paintArr = new NewMemoLoadManager.MyPaintView[pageNum];
 //            for(int i = 0 ; i < pageNum; i++){
 //                BitmapFactory.Options option = new BitmapFactory.Options();
 //                option.inPreferredConfig = Bitmap.Config.RGB_565;
@@ -430,7 +572,7 @@ public class MemoLoadManager extends AppCompatActivity {
 //                pagew = bitmap.getWidth();
 //
 //
-//                MemoLoadManager.MyPaintView img = new MemoLoadManager.MyPaintView(this,null,bitmap);
+//                NewMemoLoadManager.MyPaintView img = new NewMemoLoadManager.MyPaintView(this,null,bitmap);
 //                img.setId(i);
 //                paintArr[i] = img;
 //                final int lastNum = i;
