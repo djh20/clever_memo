@@ -67,13 +67,13 @@ public class MemoManager implements Serializable {
             Log.e("memoIndex" , memo.getMemoName() + " ");
 
             databaseManager.insertSQL("INSERT INTO Memo (memoIndex, memoName, category, updateDate, addedDate, pageNum, imagePath) "
-                    + "VALUES(" + memo.getMemoIndex() + ", '"
-                    + memo.getMemoName() + "', '"
-                    + memo.getCategory() + "', '"
-                    + memo.getUpdateDate() + "', '"
-                    + memo.getAddedDate() + "', "
-                    + memo.getNumPage() + ", '"
-                    + memo.getImagePath() + "')");
+                            + "VALUES(" + memo.getMemoIndex() + ", '"
+                            + memo.getMemoName() + "', '"
+                            + memo.getCategory() + "', '"
+                            + memo.getUpdateDate() + "', '"
+                            + memo.getAddedDate() + "', "
+                            + memo.getNumPage() + ", '"
+                            + memo.getImagePath() + "')");
         }
     }
 
@@ -98,7 +98,7 @@ public class MemoManager implements Serializable {
     }
 
     public void updateIdf(Word word) {
-        word.setIdf(NLP_math.baseLog(((memoPool.size()) /(1 + (double)word.getDocumecntFrequency())),2));
+            word.setIdf(NLP_math.baseLog(((memoPool.size()) /(1 + (double)word.getDocumecntFrequency())),2));
     }
 
 

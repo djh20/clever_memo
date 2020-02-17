@@ -41,15 +41,15 @@ public class NLPManager extends AppCompatActivity implements Serializable {
     }
 
     public static NLPManager getInstance(Twitter twitter){
-        if(nlpManager == null){
-            nlpManager = new NLPManager(twitter);
-        }
-        return nlpManager;
+            if(nlpManager == null){
+                nlpManager = new NLPManager(twitter);
+            }
+            return nlpManager;
     }
 
     public Vector<Noun> getResultFrequencyDataFromPdfFilePath(String filePath) throws FileNotFoundException {
-        File file = new File(filePath);
-        String result = "";
+            File file = new File(filePath);
+            String result = "";
         PdfReader reader = null;
         try {
             reader = new PdfReader(new FileInputStream(file));
@@ -79,17 +79,17 @@ public class NLPManager extends AppCompatActivity implements Serializable {
     }
 
     public void printMemoDB(){
-        DatabaseManager databaseManager = DatabaseManager.getInstance();
-        Cursor c = databaseManager.selectSQL("SELECT * FROM Memo");
-        while(c.moveToNext()){
-            Log.e("memo ",c.getInt(0) + "");
-            Log.e("memo ",c.getString(1) + "");
-            Log.e("memo ",c.getString(2) + "");
-            Log.e("memo ",c.getString(3) + "");
-            Log.e("memo ",c.getString(4) + "");
-            Log.e("memo ",c.getInt(5) + "");
-            Log.e("memo ",c.getString(6) + "");
-        }
+           DatabaseManager databaseManager = DatabaseManager.getInstance();
+           Cursor c = databaseManager.selectSQL("SELECT * FROM Memo");
+           while(c.moveToNext()){
+               Log.e("memo ",c.getInt(0) + "");
+               Log.e("memo ",c.getString(1) + "");
+               Log.e("memo ",c.getString(2) + "");
+               Log.e("memo ",c.getString(3) + "");
+               Log.e("memo ",c.getString(4) + "");
+               Log.e("memo ",c.getInt(5) + "");
+               Log.e("memo ",c.getString(6) + "");
+           }
     }
     public void printWordDB(){
         DatabaseManager databaseManager = DatabaseManager.getInstance();
@@ -111,7 +111,7 @@ public class NLPManager extends AppCompatActivity implements Serializable {
             Log.e("tf ",c.getInt(2) + "");
         }
     }
-
+    
 
     public void saveAllNlpData(){
         this.saveCategoryInDatabase();;

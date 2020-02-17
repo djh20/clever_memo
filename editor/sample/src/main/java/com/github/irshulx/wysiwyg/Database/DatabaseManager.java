@@ -1,4 +1,5 @@
 package com.github.irshulx.wysiwyg.Database;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseErrorHandler;

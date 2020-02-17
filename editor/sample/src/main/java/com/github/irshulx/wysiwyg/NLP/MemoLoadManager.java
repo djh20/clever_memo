@@ -1,25 +1,16 @@
 package com.github.irshulx.wysiwyg.NLP;
 
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
-import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -72,6 +63,7 @@ public class MemoLoadManager extends AppCompatActivity {
     NLPManager nlpManager;
     static final int LOAD_PAGE = 10;
     int loadedPageIndex;
+    File memoFolder;
 
     final Handler handler = new Handler() {
         public void handleMessage(Message msg) {
@@ -160,10 +152,28 @@ public class MemoLoadManager extends AppCompatActivity {
     }
 
     void makeFolder() {
-        File file = new File(imageFilePath, memoName);
-        if (!file.exists()) {
-            file.mkdirs();
+        memoFolder = new File(imageFilePath, memoName);
+        if (!memoFolder.exists()) {
+            memoFolder.mkdirs();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        new AlertDialog.Builder(this)
+                .setTitle("Exit Editor?")
+                .setMessage("메모를 종료하시겠습니까?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        for(int i = 0 ; i < pdfCount ; i++){
+                            saveImage(paintArr[i].getCanvasBit(),i); //수정된 이미지 저장
+                        }
+                        finish();
+                    }
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 
     void openNewMemo() {
@@ -189,7 +199,7 @@ public class MemoLoadManager extends AppCompatActivity {
                 int height = pdfiumCore.getPageHeightPoint(pdfDocument, pageNum);
 
                 if (width > 0 && height > 0) {
-                    pagew = scroll.getMeasuredWidth() - 50;
+                    pagew = scroll.getMeasuredWidth();
                     pageh = height * pagew / width;
                     final Bitmap bitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
                     pdfiumCore.renderPageBitmap(pdfDocument, bitmap, pageNum, 0, 0,
@@ -198,7 +208,7 @@ public class MemoLoadManager extends AppCompatActivity {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            saveImage(bitmap, index);
+                            saveImage(bitmap, index); //이거안됨
                         }
                     });
 
@@ -220,7 +230,6 @@ public class MemoLoadManager extends AppCompatActivity {
                     pageNum++;
                     loadedPageIndex = i;
                 }
-
             }
             pdfiumCore.closeDocument(pdfDocument);
 
@@ -231,8 +240,8 @@ public class MemoLoadManager extends AppCompatActivity {
 
     void saveImage(Bitmap bitmap, int pageNum) {
         try {
-            String path = imageFilePath + "/" + memoName;
-            File file = new File(path + "/" + pageNum);
+        //    String path = imageFilePath + "/" + memoName;
+            File file = new File(memoFolder ,pageNum+".png");
             FileOutputStream out = new FileOutputStream(file);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
             out.flush();
@@ -265,7 +274,9 @@ public class MemoLoadManager extends AppCompatActivity {
                 paintArr[lastTouch].onClickRedo();
                 break;
             case R.id.erase:
-                paintArr[lastTouch].setEraseMode();
+                for(MyPaintView p : paintArr){
+                    p.setEraseMode();
+                }
                 break;
         }
         return super.onOptionsItemSelected(item);

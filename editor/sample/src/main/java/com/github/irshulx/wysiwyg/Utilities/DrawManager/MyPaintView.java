@@ -81,11 +81,11 @@ public class MyPaintView extends View {
     }
 
     public void onClickUndo () {
-            if (paths.size()>0) {
-                undonePaths.add(paths.remove(paths.size()-1));
-                invalidate();
-            }else{
-            }
+        if (paths.size()>0) {
+            undonePaths.add(paths.remove(paths.size()-1));
+            invalidate();
+        }else{
+        }
 
     }
 
@@ -138,7 +138,6 @@ public class MyPaintView extends View {
 
                     case MotionEvent.ACTION_UP:
                         mPath.lineTo(mX, mY);
-                        mCanvas.drawPath(mPath, mPaint);
                         mPath.color = mPaint.getColor();
                         mPath.stroke = mPaint.getStrokeWidth();
                         paths.add(mPath);
@@ -203,13 +202,12 @@ public class MyPaintView extends View {
                 for(int z = 0 ; z < path.x.size() ; z++){
                     float exist_x = path.x.get(z);
                     float exist_y = path.y.get(z);
-                    if((x - 5 <= exist_x && exist_x <= x+5)&& (y -5 <= exist_y && exist_y <= y +5))
+                    if((x - 20 <= exist_x && exist_x <= x+20)&& (y -20 <= exist_y && exist_y <= y +20))
                         paths.remove(path);
                     Log.e("exist_X", exist_x + " ");
                     Log.e("exist_Y", exist_y + " ");
                     Log.e("x", x + "");
                     Log.e("y", y + "");
-
                 }
             }
         }
@@ -223,7 +221,14 @@ public class MyPaintView extends View {
 
     public Bitmap getCanvasBit(){
         Canvas saveCanvas = new Canvas(mBit);
-        saveCanvas.drawBitmap(canvasBit, 0, 0, null);
+        int i =0;
+        for (Path p : paths){
+            mPaint.setColor(paths.get(i).color);
+            mPaint.setStrokeWidth(paths.get(i).stroke);
+            mCanvas.drawPath(p, mPaint);
+            i++;
+        }
+        saveCanvas.drawBitmap(canvasBit,0,0,null);
         return mBit;
     }
 }

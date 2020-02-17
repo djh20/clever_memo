@@ -2,6 +2,7 @@ package com.github.irshulx.wysiwyg;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 
 import com.github.irshulx.wysiwyg.Database.DatabaseManager;

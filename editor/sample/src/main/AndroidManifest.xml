@@ -21,12 +21,17 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
+        android:name=".MyApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:largeHeap="true"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".NLP.MemoLoadManager"></activity>
+        <activity
+            android:name=".ui.CategorySelectActivity"
+            android:theme="@style/Theme.AppCompat.Dialog"
+            ></activity>
         <activity
             android:name=".SplashActivity"
             android:screenOrientation="portrait"
@@ -54,11 +59,11 @@
         <!-- android:name="com.google.android.gms.version" -->
         <!-- android:value="@integer/google_play_services_version" /> -->
         <activity
-            android:name=".TextEditor.EditorTestActivity"
+            android:name=".EditorTestActivity"
             android:label="@string/title_activity_editor_test"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
-            android:name=".TextEditor.RenderTestActivity"
+            android:name=".RenderTestActivity"
             android:label="@string/title_activity_render"
             android:theme="@style/AppTheme.NoActionBar" />
     </application>
