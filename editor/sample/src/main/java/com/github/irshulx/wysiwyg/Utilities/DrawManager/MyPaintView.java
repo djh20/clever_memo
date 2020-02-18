@@ -19,6 +19,7 @@ public class MyPaintView extends View {
     private Canvas mCanvas;
     private CusmtomPath mPath;
     private Paint mPaint;
+    private Paint erasePaint;
     private Bitmap mBit;
     private ArrayList<CusmtomPath> paths = new ArrayList<CusmtomPath>();
     private ArrayList<CusmtomPath> undonePaths = new ArrayList<CusmtomPath>();
@@ -50,6 +51,14 @@ public class MyPaintView extends View {
         height = pageh;
         width = pagew;
         this.pageNum = pageNum;
+        erasePaint = new Paint();
+        erasePaint.setAntiAlias(true);
+        erasePaint.setDither(true);
+        erasePaint.setColor(Color.LTGRAY);
+        erasePaint.setStyle(Paint.Style.STROKE);
+        erasePaint.setStrokeJoin(Paint.Join.ROUND);
+        erasePaint.setStrokeCap(Paint.Cap.ROUND);
+        erasePaint.setStrokeWidth(10);
     }
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -77,6 +86,9 @@ public class MyPaintView extends View {
         }
         mPaint.setColor(tempColor);
         mPaint.setStrokeWidth(tempStroke);
+        if(eraseMode){
+            canvas.drawPath(erasePath,erasePaint);
+        }
         canvas.drawPath(mPath, mPaint);
     }
 
