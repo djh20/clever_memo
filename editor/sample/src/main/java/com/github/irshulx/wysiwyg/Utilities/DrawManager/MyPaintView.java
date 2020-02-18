@@ -11,6 +11,8 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.github.irshulx.wysiwyg.R;
+
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -30,6 +32,7 @@ public class MyPaintView extends View {
     int width;
     Bitmap canvasBit;
     boolean eraseMode = false;
+    boolean eraseFlag = false;
     CusmtomPath erasePath;
     int tempColor;
     float tempStroke;
@@ -54,11 +57,11 @@ public class MyPaintView extends View {
         erasePaint = new Paint();
         erasePaint.setAntiAlias(true);
         erasePaint.setDither(true);
-        erasePaint.setColor(Color.LTGRAY);
+        erasePaint.setColor(context.getColor(R.color.lightGray));
         erasePaint.setStyle(Paint.Style.STROKE);
         erasePaint.setStrokeJoin(Paint.Join.ROUND);
         erasePaint.setStrokeCap(Paint.Cap.ROUND);
-        erasePaint.setStrokeWidth(10);
+        erasePaint.setStrokeWidth(20);
     }
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -86,10 +89,12 @@ public class MyPaintView extends View {
         }
         mPaint.setColor(tempColor);
         mPaint.setStrokeWidth(tempStroke);
-        if(eraseMode){
+        if(eraseFlag&&eraseMode){
             canvas.drawPath(erasePath,erasePaint);
         }
         canvas.drawPath(mPath, mPaint);
+        if(eraseFlag!=eraseMode)
+            eraseMode = eraseFlag;
     }
 
     public void onClickUndo () {
@@ -103,6 +108,7 @@ public class MyPaintView extends View {
 
     public void setEraseMode(){
         eraseMode = !eraseMode;
+        eraseFlag = !eraseFlag;
     }
 
     public void onClickRedo (){
@@ -193,6 +199,8 @@ public class MyPaintView extends View {
                         erasePath.y.add(y);
                         erase();
                         invalidate();
+                        eraseMode = false;
+                        invalidate();
                         break;
                 }
             }
@@ -228,7 +236,6 @@ public class MyPaintView extends View {
 
     public void setColor(int color){
         mPaint.setColor(color);
-
     }
 
     public Bitmap getCanvasBit(){
