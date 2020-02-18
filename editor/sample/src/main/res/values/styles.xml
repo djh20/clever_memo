@@ -13,9 +13,6 @@
         <item name="windowNoTitle">true</item>
     </style>
 
-    <style name="SplashTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <item name="android:windowBackground">@drawable/loading</item>
-    </style>
 
     <style name="AppTheme.LoginActionBar">
         <item name="windowActionBar">false</item>
