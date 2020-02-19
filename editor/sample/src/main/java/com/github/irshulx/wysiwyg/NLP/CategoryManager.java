@@ -14,4 +14,6 @@ public class CategoryManager implements Serializable {
 
     public void saveCategoryInDatabase() {
     }
+
+    public Vector<Category> getCategortPool(){return categortPool;}
 }

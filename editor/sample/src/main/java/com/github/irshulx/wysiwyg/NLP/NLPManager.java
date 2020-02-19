@@ -127,4 +127,5 @@ public class NLPManager extends AppCompatActivity implements Serializable {
     public void saveCategoryInDatabase(){
         categoryManager.saveCategoryInDatabase();
     }
+    public CategoryManager getCategoryManager() {return categoryManager;}
 }

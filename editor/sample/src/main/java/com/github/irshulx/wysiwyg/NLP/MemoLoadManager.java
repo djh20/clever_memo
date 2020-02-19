@@ -1,11 +1,16 @@
 package com.github.irshulx.wysiwyg.NLP;
 
+import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
@@ -19,6 +24,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -26,18 +32,24 @@ import com.github.irshulx.wysiwyg.Database.DatabaseManager;
 import com.github.irshulx.wysiwyg.Model.Noun;
 import com.github.irshulx.wysiwyg.NLP.Twitter;
 import com.github.irshulx.wysiwyg.R;
+import com.github.irshulx.wysiwyg.Utilities.DrawManager.DrawContaioner;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.MyPaintView;
+import com.github.irshulx.wysiwyg.Utilities.DrawManager.SerialBitmap;
 import com.github.irshulx.wysiwyg.Utilities.RealPathUtil;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -65,11 +77,6 @@ public class MemoLoadManager extends AppCompatActivity {
     int loadedPageIndex;
     File memoFolder;
 
-    final Handler handler = new Handler() {
-        public void handleMessage(Message msg) {
-            openNewMemo();
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,8 +116,9 @@ public class MemoLoadManager extends AppCompatActivity {
                     File file = new File(RealPathUtil.getRealPath(getApplicationContext(), uri));
                     memoName = file.getName();
                     if (isExistMemo()) {
-                        Toast.makeText(getApplicationContext(), "이미 존재하는 메모입니다", Toast.LENGTH_SHORT).show();
-                        finish();
+                        Log.e("dd11" , " ??");
+                        Toast.makeText(getApplicationContext(), "이미 존재하는 메모입니다, 저장된 메모를 로드합니다", Toast.LENGTH_SHORT).show();
+                        loadExistMemoObject();
                     } else {
                         makeFolder();
                         new Thread(new Runnable() {
@@ -119,7 +127,7 @@ public class MemoLoadManager extends AppCompatActivity {
                                 Vector<Noun> nouns = null;
                                 try {
                                     nouns = nlpManager.getResultFrequencyDataFromPdfFilePath(RealPathUtil.getRealPath(getApplicationContext(), uri));
-                                    nlpManager.pushNewMemoAndResultFrequency(memoName, nouns, pdfCount);
+//                                    nlpManager.pushNewMemoAndResultFrequency(memoName, nouns, pdfCount);
 //                                    nlpManager.saveMemoInDatabase();
 //                                    nlpManager.saveWordInDatabase();
 //                                    nlpManager.printWordDB();
@@ -129,15 +137,14 @@ public class MemoLoadManager extends AppCompatActivity {
                                 }
                             }
                         }).start();
-
-                        new Thread() {
-                            public void run() {
-                                Message msg = handler.obtainMessage();
-                                handler.sendMessage(msg);
-                            }
-                        }.start();
+                        try {
+                            openNewMemoThread();
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
+//                System.gc();
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
@@ -161,13 +168,13 @@ public class MemoLoadManager extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         new AlertDialog.Builder(this)
-                .setTitle("Exit Editor?")
-                .setMessage("메모를 종료하시겠습니까?")
+                .setTitle("저장")
+                .setMessage("수정 내용을 저장하시겠습니까?")
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        for(int i = 0 ; i < pdfCount ; i++){
-                            saveImage(paintArr[i].getCanvasBit(),i); //수정된 이미지 저장
+                        for(int i = 0 ; i < paintArr.length ; i++){
+                            saveObject(paintArr[i],i); //수정된 이미지 저장
                         }
                         finish();
                     }
@@ -176,72 +183,272 @@ public class MemoLoadManager extends AppCompatActivity {
                 .show();
     }
 
-    void openNewMemo() {
+
+    void openNewMemoThread() throws FileNotFoundException {
+        Log.e("mem", ((ActivityManager)this.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass() + "");
+        Log.e("mem", Runtime.getRuntime().maxMemory() + "");
         final RelativeLayout scroll = findViewById(R.id.scroll);
-        ParcelFileDescriptor fd = null;
-        try {
-            fd = this.getContentResolver().openFileDescriptor(uri, "r");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        ;
+        final int NUM_THREAD = 1;
 
-        PdfiumCore pdfiumCore = new PdfiumCore(this);
+        final ParcelFileDescriptor fd = this.getContentResolver().openFileDescriptor(uri, "r");
+        final PdfiumCore pdfiumCore = new PdfiumCore(this);
+
+
         try {
-            PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
-            pdfCount = pdfiumCore.getPageCount(pdfDocument);
+            final PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
+            pdfCount = pdfiumCore.getPageCount(pdfDocument) -1;
             paintArr = new MyPaintView[pdfCount];
-            int pageNum = 0;
+
             for (int i = 0; i < pdfCount; i++) {
-                pdfiumCore.openPage(pdfDocument, pageNum);
-
-                int width = pdfiumCore.getPageWidthPoint(pdfDocument, pageNum);
-                int height = pdfiumCore.getPageHeightPoint(pdfDocument, pageNum);
-
-                if (width > 0 && height > 0) {
-                    pagew = scroll.getMeasuredWidth();
-                    pageh = height * pagew / width;
-                    final Bitmap bitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
-                    pdfiumCore.renderPageBitmap(pdfDocument, bitmap, pageNum, 0, 0,
-                            scroll.getMeasuredWidth(), height * scroll.getMeasuredWidth() / width);
-                    final int index = i;
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            saveImage(bitmap, index); //이거안됨
-                        }
-                    });
-
-                    MyPaintView img = new MyPaintView(getApplicationContext(), null, bitmap, i, pagew, pageh);
-                    img.setId(i);
-                    paintArr[i] = img;
-                    final int nowTouch = i;
-                    img.setOnTouchListener(new View.OnTouchListener() {
-                        @Override
-                        public boolean onTouch(View v, MotionEvent event) {
-                            lastTouch = nowTouch;
-                            return false;
-                        }
-                    });
-                    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                    layoutParams.addRule(RelativeLayout.BELOW, i - 1);
-                    img.setLayoutParams(layoutParams);
-                    scroll.addView(img);
-                    pageNum++;
-                    loadedPageIndex = i;
-                }
+                paintArr[i] = new MyPaintView(getApplicationContext(), null,new DrawContaioner());
+                paintArr[i].setId(i);
+//                paintArr[i].setAdjustViewBounds(true);
+                scroll.addView(paintArr[i]);
+                loadedPageIndex = i;
             }
-            pdfiumCore.closeDocument(pdfDocument);
+            Log.e("pdfCount", pdfCount+"");
 
-        } catch (IOException ex) {
-            ex.printStackTrace();
+
+                    for(int i = 0 ; i <= NUM_THREAD-1 ; i++){
+                        final int index = i;
+                        final int firstPage = (pdfCount/NUM_THREAD)*i;
+                        Log.e("index" , i+ "");
+                        Log.e("firstPage" , firstPage + " ");
+
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+
+
+                                DrawContaioner drawContaioner;
+                                ByteArrayOutputStream stream;
+
+                                for (int j = firstPage; j <= firstPage + (pdfCount/NUM_THREAD); j++) {
+                                    Bitmap tmpBitmap;
+                                    Bitmap bitmap;
+                                    Log.e("exe", j + " ");
+                                    pdfiumCore.openPage(pdfDocument, j);
+                                    final int width = pdfiumCore.getPageWidthPoint(pdfDocument, j);
+                                    final int height = pdfiumCore.getPageHeightPoint(pdfDocument, j);
+                                    Log.e("page", pdfiumCore.getPageCount(pdfDocument) +"");
+                                    Log.e("width", width +"");
+                                    final int pageNum = j;
+                                    if (width > 0 && height > 0) {
+                                        pagew = scroll.getMeasuredWidth();
+                                        pageh = Math.round (height*((float)pagew / width));
+                                        tmpBitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
+                                        pdfiumCore.renderPageBitmap(pdfDocument, tmpBitmap, pageNum, 0, 0,
+                                        pagew, pageh);
+                                        tmpBitmap = Bitmap.createScaledBitmap(tmpBitmap,(int)(pagew/0.8) , (int) (pageh/0.8), true);
+                                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                                        tmpBitmap.compress(Bitmap.CompressFormat.JPEG,50,baos);
+                                        tmpBitmap.recycle();
+                                        tmpBitmap = BitmapFactory.decodeByteArray(baos.toByteArray(),0 , baos.size());
+
+                                        final SerialBitmap finalBitmap = new SerialBitmap(tmpBitmap);
+                                        try {
+                                            baos.flush();
+                                            baos.close();
+                                            drawContaioner = paintArr[pageNum].getDrawContaioner();
+                                            drawContaioner.setDetail(finalBitmap, pageNum, pagew, pageh);
+                                            paintArr[pageNum].setDrawContaioner(drawContaioner);
+                                            (MemoLoadManager.this).runOnUiThread(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//                                                    paintArr[pageNum].setAdjustViewBounds(true);
+                                                    layoutParams.addRule(RelativeLayout.BELOW, pageNum-1);
+//                                                    paintArr[pageNum].setScaleType(ImageView.ScaleType.FIT_XY);
+                                                    paintArr[pageNum].setLayoutParams(layoutParams);
+                                                    paintArr[pageNum].measure(pagew,pageh);
+                                                    paintArr[pageNum].setImageBitmap(finalBitmap.getBitmap());
+                                                    scroll.requestLayout();
+                                                }
+                                            });
+
+                                        }
+                                        catch (Exception e){
+                                            Log.e("dasdsada", e.getMessage());
+                                        }
+                                    }
+
+                                }
+                            }
+                        }).start();
+                    }
+
+        } catch (Exception e) {
+            Log.e("error", e.getMessage());
         }
     }
 
+
+
+
+
+
+
+//    void openNewMemo() {
+//        final RelativeLayout scroll = findViewById(R.id.scroll);
+//        ParcelFileDescriptor fd = null;
+//        try {
+//            fd = this.getContentResolver().openFileDescriptor(uri, "r");
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//        ;
+//
+//        PdfiumCore pdfiumCore = new PdfiumCore(this);
+//        try {
+//            PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
+//            pdfCount = pdfiumCore.getPageCount(pdfDocument);
+//            paintArr = new MyPaintView[pdfCount];
+//            int pageNum = 0;
+//            for (int i = 0; i < pdfCount; i++) {
+//                pdfiumCore.openPage(pdfDocument, pageNum);
+//
+//                int width = pdfiumCore.getPageWidthPoint(pdfDocument, pageNum);
+//                int height = pdfiumCore.getPageHeightPoint(pdfDocument, pageNum);
+//
+//                if (width > 0 && height > 0) {
+//                    pagew = scroll.getMeasuredWidth();
+//                    pageh = height * pagew / width;
+//                    final Bitmap tmpBitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
+//
+//                    pdfiumCore.renderPageBitmap(pdfDocument, tmpBitmap, pageNum, 0, 0,
+//                            scroll.getMeasuredWidth(), height * scroll.getMeasuredWidth() / width);
+//
+//                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//                    tmpBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+//                    byte[] byteStream = stream.toByteArray();
+//                    Bitmap bitmap = BitmapFactory.decodeByteArray(byteStream,0,byteStream.length);
+//
+//
+//                    final int index = i;
+//                    MyPaintView img = new MyPaintView(getApplicationContext(), null, new DrawContaioner(new SerialBitmap(bitmap), i, pagew, pageh));
+//                    img.setId(i);
+//                    paintArr[i] = img;
+//                    final int nowTouch = i;
+//
+//                    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//                    layoutParams.addRule(RelativeLayout.BELOW, i - 1);
+//                    img.setLayoutParams(layoutParams);
+//                    scroll.addView(img);
+//                    pageNum++;
+//                    loadedPageIndex = i;
+//                }
+//            }
+//            pdfiumCore.closeDocument(pdfDocument);
+//
+//        } catch (IOException ex) {
+//            ex.printStackTrace();
+//        }
+//    }
+
+//    void loadExistMemo(){
+//        String path = imageFilePath + "/" + memoName;
+//        RelativeLayout scroll = findViewById(R.id.scroll);
+//        File file = new File(path);
+//        int pageNum = file.list().length;
+//        Log.e("PageNum", pageNum + "");
+//
+//        try {
+//            pdfCount = pageNum;
+//            paintArr = new MyPaintView[pageNum];
+//            for(int i = 0 ; i < pageNum; i++){
+//                BitmapFactory.Options option = new BitmapFactory.Options();
+//                option.inPreferredConfig = Bitmap.Config.RGB_565;
+//                Bitmap bitmap = BitmapFactory.decodeFile(path + "/" + i + ".dat", option);
+//                pageh = bitmap.getHeight();
+//                pagew = bitmap.getWidth();
+//
+//                MyPaintView img = new MyPaintView(getApplicationContext(), null, new DrawContaioner(new SerialBitmap(bitmap), i, pagew, pageh));
+//                img.setId(i);
+//                paintArr[i] = img;
+//                final int lastNum = i;
+//                img.setOnTouchListener(new View.OnTouchListener(){
+//                    @Override
+//                    public boolean onTouch(View v, MotionEvent event) {
+//                        lastTouch = lastNum;
+//                        return false;
+//                    }
+//                });
+//                RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//                layoutParams.addRule(RelativeLayout.BELOW, i-1);
+//                img.setLayoutParams(layoutParams);
+//                scroll.addView(img);
+//            }
+//        } catch(Exception e) {
+//            Log.e("Error",e.getMessage());
+//        }
+//    }
+
+    void loadExistMemoObject(){
+        String path = imageFilePath + "/" + memoName;
+        RelativeLayout scroll = findViewById(R.id.scroll);
+        File file = new File(path);
+        int pageNum = file.list().length;
+        Log.e("PageNum", pageNum + "");
+
+        try {
+            pdfCount = pageNum;
+            paintArr = new MyPaintView[pageNum];
+
+            for(int i = 0 ; i < pageNum; i++){
+                File objectFile = new File(path + "/" + i + ".dat");
+                FileInputStream fis = new FileInputStream(objectFile);
+                ObjectInputStream ios = new ObjectInputStream(fis);
+                DrawContaioner drawContaioner = (DrawContaioner) ios.readObject();
+                MyPaintView myPaintView = new MyPaintView(getApplicationContext(),null,drawContaioner);
+                paintArr[i] = myPaintView;
+                myPaintView.setId(i);
+                pagew= myPaintView.getDrawContaioner().getHeight();
+                pagew= myPaintView.getDrawContaioner().getWidth();
+                Log.e("loadInfo", myPaintView.getDrawContaioner().getHeight() + "");
+                Log.e("loadInfo", myPaintView.getDrawContaioner().getWidth() + "");
+                final int lastNum = i;
+                myPaintView.setOnTouchListener(new View.OnTouchListener(){
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        lastTouch = lastNum;
+                        return false;
+                    }
+                });
+                RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                layoutParams.addRule(RelativeLayout.BELOW, i-1);
+                myPaintView.setLayoutParams(layoutParams);
+                scroll.addView(myPaintView);
+            }
+        } catch(Exception e) {
+            Log.e("Error",e.getMessage());
+        }
+    }
+
+    void saveObject(MyPaintView myPaintView, int pageNum) {
+        try {
+            String path = imageFilePath + "/" + memoName;
+//            File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS); // 외부저장소로 저장테스트용
+            File file = new File(path ,pageNum+".dat");
+            Log.e("save", file.getAbsolutePath());
+
+            FileOutputStream fos = new FileOutputStream(file);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(myPaintView.getDrawContaioner());
+            oos.flush();
+            oos.close();
+            fos.close();
+        } catch (Exception e) {
+            Log.e("Error_Object", e.getMessage());
+        }
+    }
+
+
     void saveImage(Bitmap bitmap, int pageNum) {
         try {
-        //    String path = imageFilePath + "/" + memoName;
-            File file = new File(memoFolder ,pageNum+".png");
+            String path = imageFilePath + "/" + memoName;
+//            File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS); // 외부저장소로 저장테스트용
+            File file = new File(path ,pageNum+".png");
+            Log.e("save", file.getAbsolutePath());
             FileOutputStream out = new FileOutputStream(file);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
             out.flush();
@@ -274,8 +481,11 @@ public class MemoLoadManager extends AppCompatActivity {
                 paintArr[lastTouch].onClickRedo();
                 break;
             case R.id.erase:
+                int i = 0;
                 for(MyPaintView p : paintArr){
+                    Log.e("터지는 부분", i + "");
                     p.setEraseMode();
+                    i++;
                 }
                 break;
         }
@@ -319,14 +529,13 @@ public class MemoLoadManager extends AppCompatActivity {
             @Override
             public void onOk(AmbilWarnaDialog dialog, int color) {
                 for (int i = 0; i < pdfCount; i++) {
-                    paintArr[i].setColor(color);
+                        paintArr[i].setColor(color);
                 }
             }
         });
         colorPicker.show();
     }
 }
-
 
 
 ////TODO 형태소분석 클래스에 합병
@@ -355,41 +564,3 @@ public class MemoLoadManager extends AppCompatActivity {
 
 
 
-//TODO 기존 메모 로드하는 클래스에 합병할 것.
-//    void loadExistMemo(){
-//        RelativeLayout scroll = findViewById(R.id.scroll);
-//        File file = new File(getApplicationContext().getFilesDir().toString() + "/memoImage/" + memoName );
-//        int pageNum = file.list().length;
-//        Log.e("PageNum", pageNum + "");
-//
-//        try {
-//            pdfCount = pageNum;
-//            paintArr = new NewMemoLoadManager.MyPaintView[pageNum];
-//            for(int i = 0 ; i < pageNum; i++){
-//                BitmapFactory.Options option = new BitmapFactory.Options();
-//                option.inPreferredConfig = Bitmap.Config.RGB_565;
-//                Bitmap bitmap = BitmapFactory.decodeFile(getFilesDir().toString()+"/memoImage/" +memoName + "/" + i, option);
-//                pageh = bitmap.getHeight();
-//                pagew = bitmap.getWidth();
-//
-//
-//                NewMemoLoadManager.MyPaintView img = new NewMemoLoadManager.MyPaintView(this,null,bitmap);
-//                img.setId(i);
-//                paintArr[i] = img;
-//                final int lastNum = i;
-//                img.setOnTouchListener(new View.OnTouchListener(){
-//                    @Override
-//                    public boolean onTouch(View v, MotionEvent event) {
-//                        lastTouch = lastNum;
-//                        return false;
-//                    }
-//                });
-//                RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-//                layoutParams.addRule(RelativeLayout.BELOW, i-1);
-//                img.setLayoutParams(layoutParams);
-//                scroll.addView(img);
-//            }
-//        } catch(Exception e) {
-//            Log.e("Error",e.getMessage());
-//        }
-//    }
