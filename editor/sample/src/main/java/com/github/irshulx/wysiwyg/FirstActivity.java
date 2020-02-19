@@ -37,6 +37,7 @@ import com.github.irshulx.wysiwyg.Database.DatabaseManager;
 import com.github.irshulx.wysiwyg.ListModel.CategoryStructure;
 import com.github.irshulx.wysiwyg.ListModel.ChildModel;
 import com.github.irshulx.wysiwyg.ListModel.ParentsModel;
+import com.github.irshulx.wysiwyg.Model.Category;
 import com.github.irshulx.wysiwyg.NLP.MemoLoadManager;
 import com.github.irshulx.wysiwyg.NLP.NLPManager;
 import com.github.irshulx.wysiwyg.ui.CategorySelectActivity;
@@ -46,6 +47,7 @@ import com.github.irshulx.wysiwyg.ui.itemList.ItemListFragment;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Vector;
 
 
 public class FirstActivity extends AppCompatActivity
@@ -62,22 +64,13 @@ public class FirstActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Intent intent = new Intent(this, CategorySelectActivity.class);
-        startActivity(intent);
 
         nlpManager = NLPManager.getInstance();
         setContentView(R.layout.activity_first);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+
         FloatingActionButton fab = findViewById(R.id.fab);
         final Context c = this;
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-
-        /*default main screen*/
-        final MainScreen main = new MainScreen();
-        getSupportFragmentManager().beginTransaction()
-                .add(R.id.frame, main)
-                .commit();
 
         /* fab */
         fab.setOnClickListener(new View.OnClickListener() {
@@ -105,7 +98,7 @@ public class FirstActivity extends AppCompatActivity
 
                                 }
                             }
-                            else {
+                            else{
                                 Intent intent = new Intent(getApplicationContext(), MemoLoadManager.class);
                                 startActivity(intent);
                             }
@@ -117,7 +110,85 @@ public class FirstActivity extends AppCompatActivity
             }
         });
 
-        /*category name set*/
+        setDrawerBar();
+    }
+
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.first, menu);
+        return true;
+    }
+
+//    @Override
+//    public boolean onSupportNavigateUp() {
+////        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+////        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
+////                || super.onSupportNavigateUp();
+//    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId())
+        {
+            case R.id.action_settings :
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
+    public String[] getData(){
+        return items;
+    }
+
+    public void setDrawerBar(){
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        /*default main screen*/
+        final MainScreen main = new MainScreen();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.frame, main)
+                .commit();
+
+        Vector<Category> categoryPool = nlpManager.getCategoryManager().getCategortPool();
+        Vector<ParentsModel> parentsModelPool = new Vector<ParentsModel>();
+        Vector<ChildModel> childModelPool = new Vector<ChildModel>();
+        Vector<CategoryStructure> categoryStructurePool = new Vector<CategoryStructure>();
+
+
+        for(int i =  0 ; i < categoryPool.size() ; i++){
+            Category category = categoryPool.get(i);
+            Vector<Category> childCategoryPool = category.getChildCategoryPool();
+            if(childCategoryPool.size() != 0){
+
+            }
+            else{
+
+
+
+            }
+
+
+
+                CategoryStructure categoryStructure = new CategoryStructure(category.getCategoryName());
+                ParentsModel parent = new ParentsModel(categoryStructure.getName(),R.drawable.add, true);
+                parentsModelPool.add(parent);
+                categoryStructurePool.add(categoryStructure);
+        }
+
+
         ArrayList<String> detail1nd = new ArrayList<>(Arrays.asList("C++","운영체제","네트워크","JAVA","LINUX"));
         ArrayList<String> detail2nd = new ArrayList<>(Arrays.asList("취미","여행","드라마"));
         CategoryStructure category1st = new CategoryStructure("공부");
@@ -204,44 +275,6 @@ public class FirstActivity extends AppCompatActivity
                     }
                 });
         navigationExpandableListView.expandGroup(2);
-    }
 
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.first, menu);
-        return true;
-    }
-
-//    @Override
-//    public boolean onSupportNavigateUp() {
-////        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
-////        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
-////                || super.onSupportNavigateUp();
-//    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId())
-        {
-            case R.id.action_settings :
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
-    public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
-    }
-
-    public String[] getData(){
-        return items;
     }
 }

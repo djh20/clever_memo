@@ -25,7 +25,7 @@ import org.w3c.dom.Text;
 public class CategorySelectActivity extends Activity {
     int numCategory = 0;
     final int numFixMenu = 2;
-    int width;
+    final int width = 1200;
     int boxWidth = (int)(width/1.3);
     final int boxHeight = 250;
     LinearLayout top;
@@ -43,18 +43,17 @@ public class CategorySelectActivity extends Activity {
         layoutParams.dimAmount = 0.7f;
 
         numCategory = 5;
-        //width =
 
         Display dp = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 
         // 3. 현재 화면에 적용
         getWindow().getAttributes().width = width;
         getWindow().getAttributes().height = (numCategory + numFixMenu)*boxHeight + (int)(((numCategory + numFixMenu)*boxHeight)*0.1);
+        addRecommandCategoryButton();
+        addRecommandCategoryButton();
+        addRecommandCategoryButton();
         addNewCategoryButton();
         addNewCategoryButton();
-        addRecommandCategoryButton();
-        addRecommandCategoryButton();
-        addRecommandCategoryButton();
         // 액티비티 바깥화면이 클릭되어도 종료되지 않게 설정하기
         this.setFinishOnTouchOutside(false);
     }
@@ -77,7 +76,7 @@ public class CategorySelectActivity extends Activity {
     public void addNewCategoryButton(){
         EditText tv = new EditText(this);
         tv.setGravity(Gravity.CENTER_VERTICAL|Gravity.CENTER);
-        tv.setHint("새로운 카테고리");
+        tv.setText("새로운 카테고리");
         tv.setTextSize(20);
         tv.setTextColor(Color.BLACK);
 

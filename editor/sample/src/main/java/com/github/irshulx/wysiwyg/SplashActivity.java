@@ -1,5 +1,7 @@
 package com.github.irshulx.wysiwyg;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.ContactsContract;
@@ -14,6 +16,7 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ((ActivityManager)this.getSystemService(Context.ACTIVITY_SERVICE)).getLargeMemoryClass();
         Twitter twitter = new Twitter(); // 트위터 객체 생성 및 put
         NLPManager nlpManager = NLPManager.getInstance(twitter);
         DatabaseManager databaseManager = DatabaseManager.getInstance(getApplicationContext());
