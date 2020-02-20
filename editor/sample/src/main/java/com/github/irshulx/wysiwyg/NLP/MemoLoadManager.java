@@ -12,6 +12,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
@@ -26,6 +28,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -41,6 +44,7 @@ import com.github.irshulx.wysiwyg.NLP.Twitter;
 import com.github.irshulx.wysiwyg.R;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.MyPaintView;
 import com.github.irshulx.wysiwyg.Utilities.RealPathUtil;
+import com.github.irshulx.wysiwyg.ui.toolFragment;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import com.shockwave.pdfium.PdfDocument;
@@ -280,7 +284,8 @@ public class MemoLoadManager extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.stroke:
-                showWriteSetup();
+                showTools();
+//                showWriteSetup();
                 break;
             case R.id.colorPick:
                 eraserSetup();
@@ -299,8 +304,19 @@ public class MemoLoadManager extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+    private void showTools(){
 
-    private void showWriteSetup() { // 색상/굵기 변경 설정
+        final toolFragment tool = new toolFragment();
+        final FragmentManager fragmentManager = getSupportFragmentManager();
+        final FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction
+                .setCustomAnimations(R.anim.show_from_right, R.anim.exit_to_right, R.anim.show_from_right, R.anim.exit_to_right)
+                .add(R.id.tool_frame, tool)
+                .addToBackStack(null)
+                .commit();
+
+    }
+    public void showWriteSetup() { // 색상/굵기 변경 설정
 
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View viewInDialog = inflater.inflate(R.layout.seekbar_color_stroke, null);
@@ -374,7 +390,14 @@ public class MemoLoadManager extends AppCompatActivity {
 
 
 
-
+    public void setDefaultPen(int color, int width, int alpha){
+        for(int i=0;i<pdfCount;i++){
+            Log.e("color, width, alpha", color+":"+width+":"+alpha);
+            paintArr[i].setStrokeWidth(width);
+            paintArr[i].setColor(color);
+            paintArr[i].setAlpha(alpha);
+        }
+    }
 
 
     private void eraserSetup() {

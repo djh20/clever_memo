@@ -110,6 +110,10 @@ public class MyPaintView extends View {
 
     }
 
+    public void setAlpha(int alpha){
+        mPaint.setAlpha(alpha);
+    }
+
     public void setEraseMode(){
         eraseMode = !eraseMode;
         eraseFlag = !eraseFlag;

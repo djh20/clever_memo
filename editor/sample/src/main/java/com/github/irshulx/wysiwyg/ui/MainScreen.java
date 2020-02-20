@@ -14,7 +14,7 @@ import com.github.irshulx.wysiwyg.R;
 public class MainScreen extends Fragment {
     public MainScreen() {
     }
-    @Nullable
+        @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.main_screen, container, false);
