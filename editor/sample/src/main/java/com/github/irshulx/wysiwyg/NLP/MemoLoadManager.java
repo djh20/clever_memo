@@ -1,9 +1,11 @@
 package com.github.irshulx.wysiwyg.NLP;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,14 +14,21 @@ import android.os.ParcelFileDescriptor;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.irshulx.wysiwyg.Database.DatabaseManager;
@@ -77,7 +86,7 @@ public class MemoLoadManager extends AppCompatActivity {
         setContentView(R.layout.activity_pdfcanvas);
         nlpManager = NLPManager.getInstance();
         imageFilePath = getFilesDir().toString() + "/memoImage";
-        showFileChooser();
+        showFileChooser(); // 파일 선택
         Log.e("끝남", "ㅇㅁㄴㅇㄴㅁ");
     }
 
@@ -282,33 +291,46 @@ public class MemoLoadManager extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void showWriteSetup() {
-        final EditText editText = new EditText(this);
-        editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+    private void showWriteSetup() { // 굵기 변경 설정
 
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View viewInDialog = inflater.inflate(R.layout.seek_bar, null);
+        final AlertDialog penDialog = new AlertDialog.Builder(this).setView(viewInDialog).create();
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("AlertDialog Title");
-        builder.setMessage("굵기 입력");
-        builder.setView(editText);
-        builder.setPositiveButton("입력",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        for (int i = 0; i < pdfCount; i++) {
-                            paintArr[i].setStrokeWidth(Integer.parseInt(editText.getText().toString()));
-                        }
+        penDialog.show();
+        Window window = penDialog.getWindow();
+        WindowManager.LayoutParams wlp = window.getAttributes();
+        wlp.gravity = Gravity.TOP;
+        window.setAttributes(wlp);
 
-                    }
-                });
-        builder.setNegativeButton("취소",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
+        final SeekBar mSeekBarPenWidth = (SeekBar) viewInDialog.findViewById(R.id.seekbar_stroke);
+        final TextView widthStatus = (TextView) viewInDialog.findViewById(R.id.pen_width);
+        mSeekBarPenWidth.setProgress((int)paintArr[1].getTempStroke()); // thumb position
+        widthStatus.setText("굵기: "+Float.toString(paintArr[1].getTempStroke()));
 
-                    }
-                });
-        builder.show();
-
+        mSeekBarPenWidth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                for (int i = 0; i < pdfCount; i++) {
+                    paintArr[i].setStrokeWidth(seekBar.getProgress());
+                }
+            }
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+//                System.out.println("=============================================================================="+paintArr[0].getTempStroke());
+//                seekBar.setProgress((int)paintArr[1].getTempStroke());
+            }
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                widthStatus.setText("굵기: "+progress);
+            }
+        });
     }
+
+
+
+
+
 
     private void openColorPicker() {
         AmbilWarnaDialog colorPicker = new AmbilWarnaDialog(this, tColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
@@ -325,6 +347,8 @@ public class MemoLoadManager extends AppCompatActivity {
         });
         colorPicker.show();
     }
+
+
 }
 
 
@@ -393,3 +417,4 @@ public class MemoLoadManager extends AppCompatActivity {
 //            Log.e("Error",e.getMessage());
 //        }
 //    }
+

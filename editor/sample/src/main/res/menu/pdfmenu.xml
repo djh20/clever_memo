@@ -29,3 +29,4 @@
         android:id="@+id/colorPick"
         android:title="색상 선택" />
 </menu>
+

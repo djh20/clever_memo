@@ -37,16 +37,20 @@ public class MyPaintView extends View {
     int tempColor;
     float tempStroke;
 
+
+    public float getTempStroke() {
+        return mPaint.getStrokeWidth();
+    }
     public MyPaintView(Context context, AttributeSet attributeSet, Bitmap mBit, int pageNum, int pagew, int pageh) {
         super(context, attributeSet);
         mPaint = new Paint();
-        mPaint.setAntiAlias(true);
-        mPaint.setDither(true);
-        mPaint.setColor(Color.BLACK);
+        mPaint.setAntiAlias(true); // 경계면 부드럽게 처리
+        mPaint.setDither(true); // 이미지의 색상을 낮추어 출력
+        mPaint.setColor(Color.BLACK); // 펜 색깔
         this.mBit = mBit;
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeJoin(Paint.Join.ROUND);
-        mPaint.setStrokeCap(Paint.Cap.ROUND);
+        mPaint.setStyle(Paint.Style.STROKE); // 채우기 없음
+        mPaint.setStrokeJoin(Paint.Join.ROUND); // 선의 끝 모양
+        mPaint.setStrokeCap(Paint.Cap.ROUND); // 선 끝나는 지점 둥글게
         mPaint.setStrokeWidth(6);
         mPath = new CusmtomPath();
         canvasBit =  Bitmap.createBitmap(pagew,pageh,Bitmap.Config.ARGB_8888);
@@ -126,7 +130,7 @@ public class MyPaintView extends View {
         float y = event.getY();
 
 
-        if(event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS)
+        if(event.getToolType(0) == MotionEvent.TOOL_TYPE_FINGER)
         {
             if(eraseMode == false) {
                 switch (event.getAction()) {
