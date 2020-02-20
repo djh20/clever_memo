@@ -10,7 +10,7 @@ import java.util.ArrayList;
 public class DrawContaioner implements Serializable {
 
     private CusmtomPath mPath;
-    private transient Paint mPaint;
+    transient Paint mPaint;
     private SerialBitmap mBit;
     private ArrayList<CusmtomPath> paths = new ArrayList<CusmtomPath>();
     private ArrayList<CusmtomPath> undonePaths = new ArrayList<CusmtomPath>();

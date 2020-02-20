@@ -33,6 +33,13 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     private static final float TOUCH_TOLERANCE = 4;
     DrawContaioner drawContaioner;
     Paint erasePaint;
+    Paint tempPaint;
+    Canvas mCanvas;
+    Bitmap mBitmap1;
+    Bitmap mBitmap2;
+    Bitmap tempBitmap;
+    boolean undoFlag = false;
+    boolean eraseTest = false;
     boolean eraseFlag = false;
 
 
@@ -40,10 +47,12 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     public MyPaintView(Context context, AttributeSet attributeSet, DrawContaioner drawContaioner) {
         super(context, attributeSet);
         this.drawContaioner = drawContaioner;
-        erasePaint = new Paint();
+        erasePaint = new Paint(Paint.DEV_KERN_TEXT_FLAG);
+        erasePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         erasePaint.setAntiAlias(true);
         erasePaint.setDither(true);
-        erasePaint.setColor(context.getColor(R.color.lightGray));
+        erasePaint.setColor(Color.TRANSPARENT);
+//        erasePaint.setColor(context.getColor(R.color.lightGray));
         erasePaint.setStyle(Paint.Style.STROKE);
         erasePaint.setStrokeJoin(Paint.Join.ROUND);
         erasePaint.setStrokeCap(Paint.Cap.ROUND);
@@ -60,49 +69,73 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        mBitmap1 = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        mBitmap2 = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        mCanvas = new Canvas(mBitmap1);
         Log.e("사이브변경?", w + " " + h + " " + oldw + " " + oldh);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        setLayerType(View.LAYER_TYPE_HARDWARE, null);
         Log.e("끄림", "그림");
-        if(drawContaioner.getmBit() != null) {
-//            canvas.drawBitmap(drawContaioner.getmBit().getBitmap(), 0, 0, null);
+        if (drawContaioner != null && mBitmap1 != null) {
             getParent().requestDisallowInterceptTouchEvent(true);
-            drawContaioner.setTempColor(drawContaioner.getmPaint().getColor());
-            drawContaioner.setTempStroke(drawContaioner.getmPaint().getStrokeWidth());
-            int i = 0;
-            for (Path p : drawContaioner.getPaths()) {
-                Log.e("onDraw", "있던 거 그림");
-                drawContaioner.getmPaint().setColor(drawContaioner.getPaths().get(i).color);
-                drawContaioner.getmPaint().setStrokeWidth(drawContaioner.getPaths().get(i).stroke);
-                canvas.drawPath(p, drawContaioner.getmPaint());
-                i++;
+            if(undoFlag) {
+                canvas.drawBitmap(mBitmap2,0,0, null);
+                drawContaioner.setTempColor(drawContaioner.getmPaint().getColor());
+                drawContaioner.setTempStroke(drawContaioner.getmPaint().getStrokeWidth());
+                int i = 0;
+                for (Path p : drawContaioner.getPaths()) {
+                    Log.e("onDraw", "있던 거 그림");
+                    drawContaioner.getmPaint().setColor(drawContaioner.getPaths().get(i).color);
+                    drawContaioner.getmPaint().setStrokeWidth(drawContaioner.getPaths().get(i).stroke);
+                    canvas.drawPath(p, drawContaioner.getmPaint());
+                    i++;
+                }
+                drawContaioner.getmPaint().setColor(drawContaioner.getTempColor());
+                drawContaioner.getmPaint().setStrokeWidth(drawContaioner.getTempStroke());
             }
-            drawContaioner.getmPaint().setColor(drawContaioner.getTempColor());
-            drawContaioner.getmPaint().setStrokeWidth(drawContaioner.getTempStroke());
-            if(eraseFlag&&drawContaioner.isEraseMode()){
-                canvas.drawPath(drawContaioner.getErasePath(),erasePaint);
+            else{
+                canvas.drawBitmap(mBitmap1, 0, 0, null);
+                canvas.drawPath(drawContaioner.getmPath(), drawContaioner.getmPaint());
             }
-            canvas.drawPath(drawContaioner.getmPath(), drawContaioner.getmPaint());
-            if(eraseFlag!=drawContaioner.isEraseMode())
-                drawContaioner.setEraseMode(eraseFlag);
+
+//            if (eraseFlag && drawContaioner.isEraseMode()) {
+//                canvas.drawPath(drawContaioner.getErasePath(), erasePaint);
+//            }
+//            if(eraseTest)
+//                return;
+//
+//            if (eraseFlag != drawContaioner.isEraseMode())
+//                drawContaioner.setEraseMode(eraseFlag);
         }
+        undoFlag = false;
     }
+
 
     public void onClickUndo () {
         if (drawContaioner.getPaths().size()>0) {
+            undoFlag=true;
             drawContaioner.getUndonePaths().add(drawContaioner.getPaths().remove(drawContaioner.getPaths().size()-1));
             invalidate();
         }else{
-        }
-
+            }
     }
 
     public void setEraseMode(){
-        drawContaioner.setEraseMode(!drawContaioner.isEraseMode());
-        eraseFlag = !eraseFlag;
+        eraseTest = !eraseTest;
+        if(eraseTest){
+            tempPaint = drawContaioner.mPaint;
+            drawContaioner.mPaint = erasePaint;
+        }
+        else {
+            drawContaioner.mPaint = tempPaint;
+        }
+//        drawContaioner.mPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+//        drawContaioner.setEraseMode(!drawContaioner.isEraseMode());
+//        eraseFlag = !eraseFlag;
     }
 
     public void onClickRedo (){
@@ -129,6 +162,7 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
             if(drawContaioner.isEraseMode() == false) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        tempBitmap = mBitmap1.copy(mBitmap1.getConfig(),mBitmap1.isMutable());
                         Log.e("down" , " exe");
                         drawContaioner.getUndonePaths().clear();
                         drawContaioner.getmPath().reset();
@@ -151,15 +185,16 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
                         }
                        drawContaioner.getmPath().x.add(x);
                        drawContaioner.getmPath().y.add(y);
-                        invalidate();
-                        break;
+                       invalidate();
+                       break;
 
                     case MotionEvent.ACTION_UP:
                         Log.e("up" , " exe");
                        drawContaioner.getmPath().lineTo(drawContaioner.getmX(), drawContaioner.getmY());
                        drawContaioner.getmPath().color = drawContaioner.getmPaint().getColor();
                        drawContaioner.getmPath().stroke = drawContaioner.getmPaint().getStrokeWidth();
-                        drawContaioner.getPaths().add(drawContaioner.getmPath());
+                       drawContaioner.getPaths().add(drawContaioner.getmPath());
+                       mCanvas.drawPath(drawContaioner.getmPath(),drawContaioner.getmPaint());
                        drawContaioner.setmPath(new CusmtomPath());
                        drawContaioner.getmPath().x.add(x);
                        drawContaioner.getmPath().y.add(y);
@@ -237,13 +272,8 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
 
     public void setColor(int color){
         drawContaioner.getmPaint().setColor(color);
-
     }
 
-    public void saveCanvas(){
-
-
-    }
 
     public SerialBitmap getSerialBitMap(){
         return drawContaioner.getmBit();
