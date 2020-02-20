@@ -241,7 +241,7 @@ public class MyPaintView extends View {
     public void setColor(int color){
         mPaint.setColor(color);
     }
-
+    public int getColor() {return mPaint.getColor();}
     public Bitmap getCanvasBit(){
         Canvas saveCanvas = new Canvas(mBit);
         int i =0;

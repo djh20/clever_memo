@@ -12,4 +12,21 @@
     <color name="rounded_container_bg">#222222</color>
     <color name="rounded_container_border">#3b3f44</color>
     <color name="light_gray_header_color">#646663</color>
+
+    <array name="text_colors">
+        <item>#000000</item>
+        <item>#607D8B</item>
+        <item>#F44336</item>
+        <item>#9C27B0</item>
+        <item>#3F51B5</item>
+        <item>#03A9F4</item>
+        <item>#009688</item>
+        <item>#8BC34A</item>
+        <item>#FFEB3B</item>
+        <item>#FF9800</item>
+        <item>#795548</item>
+        <item>#9E9E9E</item>
+        <item>#ffffff</item>
+    </array>
+
 </resources>

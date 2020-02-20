@@ -3,10 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/colorpick"
-        android:title="색상선택" />
+        android:title="지우개 크기" />
     <item
         android:id="@+id/pen"
-        android:title="굵기입력" />
+        android:title="펜 색/굵기" />
     <item
         android:id="@+id/pickFile"
         android:icon="@drawable/ic_insert_drive_file_black_24dp"

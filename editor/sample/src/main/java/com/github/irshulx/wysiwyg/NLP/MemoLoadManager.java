@@ -6,11 +6,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
@@ -25,11 +27,13 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
 
 import com.github.irshulx.wysiwyg.Database.DatabaseManager;
 import com.github.irshulx.wysiwyg.Model.Noun;
@@ -55,12 +59,17 @@ import java.util.Vector;
 
 import scala.util.control.TailCalls;
 import yuku.ambilwarna.AmbilWarnaDialog;
+import com.rtugeek.android.colorseekbar.ColorSeekBar;
 
 
 public class MemoLoadManager extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final int FILE_SELECT_CODE = 0;
+    private ColorSeekBar mColorSeekBar;
+    private SeekBar strokeSeekBar;
+    private int change_stroke = 10; // 굵기 변경용
+    private int change_color; // 색상 변경용
     String imageFilePath;
     Uri uri;
     int pagew, pageh;
@@ -274,7 +283,7 @@ public class MemoLoadManager extends AppCompatActivity {
                 showWriteSetup();
                 break;
             case R.id.colorPick:
-                openColorPicker();
+                eraserSetup();
                 break;
             case R.id.undo:
                 paintArr[lastTouch].onClickUndo();
@@ -291,38 +300,74 @@ public class MemoLoadManager extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void showWriteSetup() { // 굵기 변경 설정
+    private void showWriteSetup() { // 색상/굵기 변경 설정
 
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View viewInDialog = inflater.inflate(R.layout.seek_bar, null);
+        View viewInDialog = inflater.inflate(R.layout.seekbar_color_stroke, null);
         final AlertDialog penDialog = new AlertDialog.Builder(this).setView(viewInDialog).create();
 
         penDialog.show();
-        Window window = penDialog.getWindow();
+
+        Window window = penDialog.getWindow(); // dialog 상단 배치
         WindowManager.LayoutParams wlp = window.getAttributes();
         wlp.gravity = Gravity.TOP;
         window.setAttributes(wlp);
 
-        final SeekBar mSeekBarPenWidth = (SeekBar) viewInDialog.findViewById(R.id.seekbar_stroke);
-        final TextView widthStatus = (TextView) viewInDialog.findViewById(R.id.pen_width);
-        mSeekBarPenWidth.setProgress((int)paintArr[1].getTempStroke()); // thumb position
-        widthStatus.setText("굵기: "+Float.toString(paintArr[1].getTempStroke()));
+        mColorSeekBar = (ColorSeekBar) viewInDialog.findViewById(R.id.colorSlider);
+        mColorSeekBar.setColorSeeds(R.array.text_colors);
+        strokeSeekBar = viewInDialog.findViewById(R.id.strokeSlider);
 
-        mSeekBarPenWidth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        final TextView textView = (TextView) viewInDialog.findViewById(R.id.textView);
+        final ImageView oval_image = (ImageView) viewInDialog.findViewById(R.id.oval_image);
+        final GradientDrawable drawable_color = (GradientDrawable) ContextCompat.getDrawable(this, R.drawable.shape);
+        change_stroke=10;
+//        drawable_color.setStroke(change_stroke,change_color);
+//        oval_image.setImageDrawable(drawable_color);
+        for (int i = 1; i < pdfCount; i++)
+            paintArr[i].setStrokeWidth(change_stroke);
+
+        mColorSeekBar.setMaxPosition(100);
+        mColorSeekBar.setThumbHeight(30);
+        mColorSeekBar.setDisabledColor(Color.GRAY);
+        mColorSeekBar.setOnInitDoneListener(new ColorSeekBar.OnInitDoneListener() {
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                for (int i = 0; i < pdfCount; i++) {
-                    paintArr[i].setStrokeWidth(seekBar.getProgress());
-                }
+            public void done() {
+                Log.i(TAG,"done!");
             }
+        });
+
+        mColorSeekBar.setOnColorChangeListener(new ColorSeekBar.OnColorChangeListener() {
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-//                System.out.println("=============================================================================="+paintArr[0].getTempStroke());
-//                seekBar.setProgress((int)paintArr[1].getTempStroke());
+            public void onColorChangeListener(int colorBarPosition, int alphaBarPosition, int color) { // 색상 변경
+                change_color = mColorSeekBar.getColor();
+                textView.setTextColor(change_color); // 텍스트 색
+                drawable_color.setStroke(change_stroke ,change_color); // 테두리 굵기/색
+                oval_image.setImageDrawable(drawable_color); // 적용
+                for (int i = 0; i < pdfCount; i++)
+                    paintArr[i].setColor(change_color);
             }
+        });
+
+
+
+        strokeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() { // 굵기 변경
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                widthStatus.setText("굵기: "+progress);
+                change_stroke=progress+10;
+                drawable_color.setStroke(change_stroke,change_color); // 테두리 굵기/색
+                oval_image.setImageDrawable(drawable_color); // 적용
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                for (int i = 1; i < pdfCount; i++) {
+                    paintArr[i].setStrokeWidth(seekBar.getProgress()); // 굵기선택 끝날 시 일괄 변경
+                }
             }
         });
     }
@@ -332,7 +377,7 @@ public class MemoLoadManager extends AppCompatActivity {
 
 
 
-    private void openColorPicker() {
+    private void eraserSetup() {
         AmbilWarnaDialog colorPicker = new AmbilWarnaDialog(this, tColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
             @Override
             public void onCancel(AmbilWarnaDialog dialog) {
