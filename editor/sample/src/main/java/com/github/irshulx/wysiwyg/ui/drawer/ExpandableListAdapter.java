@@ -1,13 +1,23 @@
 package com.github.irshulx.wysiwyg.ui.drawer;
 
+import android.content.ClipData;
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.Typeface;
+import android.os.Build;
+import android.os.Handler;
+import android.support.annotation.RequiresApi;
+import android.util.Log;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.github.irshulx.wysiwyg.ListModel.ChildModel;
@@ -100,13 +110,13 @@ class ExpandableListAdapter extends BaseExpandableListAdapter {
         }
 
         RelativeLayout layoutGroup = convertView.findViewById(R.id.layout_group);
-        TextView lblListHeader = (TextView) convertView.findViewById(R.id.lblListHeader);
+        final TextView lblListHeader = (TextView) convertView.findViewById(R.id.lblListHeader);
         ImageView ivGroupIndicator = convertView.findViewById(R.id.ivGroupIndicator);
         ImageView iconMenu = convertView.findViewById(R.id.icon_menu);
         TextView isNew = convertView.findViewById(R.id.is_new);
-
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+        lblListHeader.setLayoutParams(params);
         lblListHeader.setText(header.getTitle());
-
         if (header.getResource() != -1)
             iconMenu.setBackgroundResource(header.getResource());
 

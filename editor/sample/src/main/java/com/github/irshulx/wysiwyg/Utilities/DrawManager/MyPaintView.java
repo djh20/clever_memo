@@ -16,6 +16,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ScrollView;
+
+import com.github.irshulx.wysiwyg.R;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,12 +33,36 @@ import java.util.Vector;
 public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     private static final float TOUCH_TOLERANCE = 4;
     DrawContaioner drawContaioner;
+    Paint erasePaint;
+    boolean eraseFlag = false;
 
+    public void clear(){
+        drawContaioner.mBitmapUnUse();
+        drawContaioner = null;
+        eraseFlag = false;
+        erasePaint = null;
+    }
 
+    public boolean isCleared(){
+        if(drawContaioner == null && erasePaint == null)
+            return true;
+        return false;
+    }
 
-    public MyPaintView(Context context, AttributeSet attributeSet, DrawContaioner drawContaioner) {
+    public void setupToUse(Context context){
+        erasePaint = new Paint();
+        erasePaint.setAntiAlias(true);
+        erasePaint.setDither(true);
+        erasePaint.setColor(context.getColor(R.color.lightGray));
+        erasePaint.setStyle(Paint.Style.STROKE);
+        erasePaint.setStrokeJoin(Paint.Join.ROUND);
+        erasePaint.setStrokeCap(Paint.Cap.ROUND);
+        erasePaint.setStrokeWidth(20);
+    }
+
+    public MyPaintView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
-        this.drawContaioner = drawContaioner;
+
     }
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -55,8 +82,7 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         Log.e("끄림", "그림");
-        if(drawContaioner != null) {
-//            canvas.drawBitmap(drawContaioner.getmBit().getBitmap(), 0, 0, null);
+        if(drawContaioner != null && drawContaioner.getmBit() != null) {
             getParent().requestDisallowInterceptTouchEvent(true);
             drawContaioner.setTempColor(drawContaioner.getmPaint().getColor());
             drawContaioner.setTempStroke(drawContaioner.getmPaint().getStrokeWidth());
@@ -70,7 +96,12 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
             }
             drawContaioner.getmPaint().setColor(drawContaioner.getTempColor());
             drawContaioner.getmPaint().setStrokeWidth(drawContaioner.getTempStroke());
+            if(eraseFlag&&drawContaioner.isEraseMode()){
+                canvas.drawPath(drawContaioner.getErasePath(),erasePaint);
+            }
             canvas.drawPath(drawContaioner.getmPath(), drawContaioner.getmPaint());
+            if(eraseFlag!=drawContaioner.isEraseMode())
+                drawContaioner.setEraseMode(eraseFlag);
         }
     }
 
@@ -84,9 +115,8 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     }
 
     public void setEraseMode(){
-//        drawContaioner.setEraseMode(!drawContaioner.isEraseMode());
-        drawContaioner.getmPaint().setXfermode(new PorterDuffXfermode(
-                PorterDuff.Mode.CLEAR));
+        drawContaioner.setEraseMode(!drawContaioner.isEraseMode());
+        eraseFlag = !eraseFlag;
     }
 
     public void onClickRedo (){
@@ -133,8 +163,10 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
                            drawContaioner.setmX(x);
                             drawContaioner.setmY(y);
                         }
-                       drawContaioner.getmPath().x.add(x);
-                       drawContaioner.getmPath().y.add(y);
+                       drawContaioner.getmPath().x.add(drawContaioner.getmX());
+                        drawContaioner.getmPath().y.add(drawContaioner.getmY());
+                        drawContaioner.getmPath().x.add((x + drawContaioner.getmX()) / 2);
+                        drawContaioner.getmPath().y.add((y + drawContaioner.getmY()) / 2);
                         invalidate();
                         break;
 
@@ -173,8 +205,10 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
                             drawContaioner.setmX(x);
                             drawContaioner.setmY(y);
                         }
-                        drawContaioner.getErasePath().x.add(x);
-                        drawContaioner.getErasePath().y.add(y);
+                        drawContaioner.getErasePath().x.add(drawContaioner.getmX());
+                        drawContaioner.getErasePath().y.add(drawContaioner.getmY());
+                        drawContaioner.getErasePath().x.add((x + drawContaioner.getmX()) / 2);
+                        drawContaioner.getErasePath().y.add((y + drawContaioner.getmY()) / 2);
                         invalidate();
                         break;
 
@@ -183,6 +217,8 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
                         drawContaioner.getErasePath().x.add(x);
                         drawContaioner.getErasePath().y.add(y);
                         erase();
+                        invalidate();
+                        drawContaioner.setEraseMode(false);
                         invalidate();
                         break;
                 }
@@ -240,9 +276,6 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     }
 
 }
-
-
-
 
 class CusmtomPath extends Path implements Serializable{
 

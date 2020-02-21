@@ -7,6 +7,7 @@ import com.twitter.penguin.korean.phrase_extractor.KoreanPhraseExtractor;
 import com.twitter.penguin.korean.tokenizer.KoreanTokenizer;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
@@ -36,10 +37,10 @@ public class Twitter implements Serializable {
 //        return phrases;
 //    }
 
-    public Vector<Noun> getNounsWithFrequency(String text) {
+    public ArrayList<Noun> getNounsWithFrequency(String text) {
         CharSequence normalized = TwitterKoreanProcessorJava.normalize(text);
         Seq<KoreanTokenizer.KoreanToken> tokens = TwitterKoreanProcessorJava.tokenize(normalized);
-        Vector<Noun> nouns = new Vector<Noun>();
+        ArrayList<Noun> nouns = new ArrayList<Noun>();
         List<KoreanTokenJava> kts = TwitterKoreanProcessorJava.tokensToJavaKoreanTokenList(tokens);
         for (int i = 0; i < kts.size(); i++) {
             KoreanTokenJava kt = kts.get(i);
@@ -67,7 +68,7 @@ public class Twitter implements Serializable {
         return nouns;
     }
 
-    public static void insertNoun(Vector<Noun> nouns, String value){
+    public static void insertNoun(ArrayList<Noun> nouns, String value){
         boolean existFlag = false;
         for (int i = 0; i < nouns.size(); i++) {
             Noun noun = nouns.get(i);

@@ -18,16 +18,25 @@ public class DrawContaioner implements Serializable {
     private int pageNum;
     private int height;
     private int width;
-    private boolean eraseMode;
+    private boolean eraseMode = false;
     private CusmtomPath erasePath;
     private int tempColor;
     private float tempStroke;
 
-    public DrawContaioner(){
 
+    public void setDetail(SerialBitmap mBit, int pageNum, int pagew, int pageh){
+        eraseMode = false;
+        this.mBit = mBit;
+        mPath = new CusmtomPath();
+        erasePath = new CusmtomPath();
+        width = pagew;
+        height = pageh;
+        this.pageNum = pageNum;
     }
 
-    public void create_mPaint(){
+    public DrawContaioner(){ }
+
+    public void createmPaint(){
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPaint.setDither(true);
@@ -36,15 +45,6 @@ public class DrawContaioner implements Serializable {
         mPaint.setStrokeJoin(Paint.Join.ROUND);
         mPaint.setStrokeCap(Paint.Cap.ROUND);
         mPaint.setStrokeWidth(6);
-    }
-
-    public DrawContaioner(SerialBitmap mBit, int pageNum, int pagew, int pageh){
-        eraseMode = false;
-        this.mBit = mBit;
-        mPath = new CusmtomPath();
-        width = pagew;
-        height = pageh;
-        this.pageNum = pageNum;
     }
 
     public CusmtomPath getmPath() {
@@ -159,5 +159,10 @@ public class DrawContaioner implements Serializable {
 
     public void setTempStroke(float tempStroke) {
         this.tempStroke = tempStroke;
+    }
+
+    public void mBitmapUnUse() {
+        BitmapManager bitmapManager = BitmapManager.getInstance();
+        bitmapManager.setUnUse(mBit);
     }
 }

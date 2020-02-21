@@ -17,6 +17,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 
@@ -38,6 +39,7 @@ import com.github.irshulx.wysiwyg.ListModel.CategoryStructure;
 import com.github.irshulx.wysiwyg.ListModel.ChildModel;
 import com.github.irshulx.wysiwyg.ListModel.ParentsModel;
 import com.github.irshulx.wysiwyg.Model.Category;
+import com.github.irshulx.wysiwyg.Model.Memo;
 import com.github.irshulx.wysiwyg.NLP.MemoLoadManager;
 import com.github.irshulx.wysiwyg.NLP.NLPManager;
 import com.github.irshulx.wysiwyg.ui.CategorySelectActivity;
@@ -59,7 +61,10 @@ public class FirstActivity extends AppCompatActivity
     private ActionBarDrawerToggle toggle;
     private NLPManager nlpManager;
     private String[] items;
+    private Toolbar toolbar;
+    private MainScreen main;
 
+    public static final int OPEN_NEW_ACTIVITY = 10;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,12 +100,11 @@ public class FirstActivity extends AppCompatActivity
                                     ActivityCompat.requestPermissions(FirstActivity.this,
                                             new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                                             1);
-
                                 }
                             }
                             else{
                                 Intent intent = new Intent(getApplicationContext(), MemoLoadManager.class);
-                                startActivity(intent);
+                                startActivityForResult(intent, OPEN_NEW_ACTIVITY);
                             }
                         }
                     }
@@ -110,10 +114,22 @@ public class FirstActivity extends AppCompatActivity
             }
         });
 
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        /*default main screen*/
+        main = new MainScreen();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.frame, main)
+                .commit();
         setDrawerBar();
     }
 
-
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == OPEN_NEW_ACTIVITY) {
+            setDrawerBar();
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -121,13 +137,6 @@ public class FirstActivity extends AppCompatActivity
         getMenuInflater().inflate(R.menu.first, menu);
         return true;
     }
-
-//    @Override
-//    public boolean onSupportNavigateUp() {
-////        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
-////        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
-////                || super.onSupportNavigateUp();
-//    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -153,58 +162,42 @@ public class FirstActivity extends AppCompatActivity
     }
 
     public void setDrawerBar(){
+        Log.e("dadsda", "hello");
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        /*default main screen*/
-        final MainScreen main = new MainScreen();
-        getSupportFragmentManager().beginTransaction()
-                .add(R.id.frame, main)
-                .commit();
-
-        Vector<Category> categoryPool = nlpManager.getCategoryManager().getCategortPool();
-        Vector<ParentsModel> parentsModelPool = new Vector<ParentsModel>();
-        Vector<ChildModel> childModelPool = new Vector<ChildModel>();
+        ArrayList<Category> categoryPool = nlpManager.getCategoryManager().getCategortPool();
+        final Vector<ParentsModel> parentsModelPool = new Vector<ParentsModel>();
         Vector<CategoryStructure> categoryStructurePool = new Vector<CategoryStructure>();
-
 
         for(int i =  0 ; i < categoryPool.size() ; i++){
             Category category = categoryPool.get(i);
-            Vector<Category> childCategoryPool = category.getChildCategoryPool();
-            if(childCategoryPool.size() != 0){
-
+            Log.e("dadsda", "hi");
+            if(category.getParent() == null){
+                ParentsModel parentsModel = new ParentsModel(category.getCategoryName());
+                ArrayList<Category> childCategoryPool = category.getChildCategoryPool();
+                for(int j = 0 ; j < childCategoryPool.size() ; j++){
+                    Category childCategory = childCategoryPool.get(j);
+                    parentsModel.addChildModel(new ChildModel(childCategory.getCategoryName()));
+                }
+                parentsModelPool.add(parentsModel);
             }
-            else{
-
-
-
-            }
-
-
-
-                CategoryStructure categoryStructure = new CategoryStructure(category.getCategoryName());
-                ParentsModel parent = new ParentsModel(categoryStructure.getName(),R.drawable.add, true);
-                parentsModelPool.add(parent);
-                categoryStructurePool.add(categoryStructure);
         }
 
-
-        ArrayList<String> detail1nd = new ArrayList<>(Arrays.asList("C++","운영체제","네트워크","JAVA","LINUX"));
-        ArrayList<String> detail2nd = new ArrayList<>(Arrays.asList("취미","여행","드라마"));
-        CategoryStructure category1st = new CategoryStructure("공부");
-        CategoryStructure category2nd = new CategoryStructure("일기");
-        category1st.setDetailCategory(detail1nd);
-        category2nd.setDetailCategory(detail2nd);
-        System.out.println("======================================="+category1st.getName());
-
-        /*make a parentsModel*/
-        ParentsModel parents1st = new ParentsModel(category1st.getName(),R.drawable.add, true);
-        for(int i=0;i<category1st.getDetailSize();i++)
-            parents1st.addChildModel(new ChildModel(category1st.getDetailCategory().get(i)));
-
-        ParentsModel parents2nd = new ParentsModel(category2nd.getName(),R.drawable.add, true);
-        for(int i=0;i<category2nd.getDetailSize();i++)
-            parents2nd.addChildModel(new ChildModel(category2nd.getDetailCategory().get(i)));
+//        ArrayList<String> detail1nd = new ArrayList<>(Arrays.asList("C++","운영체제","네트워크","JAVA","LINUX"));
+//        ArrayList<String> detail2nd = new ArrayList<>(Arrays.asList("취미","여행","드라마"));
+//        CategoryStructure category1st = new CategoryStructure("공부");
+//        CategoryStructure category2nd = new CategoryStructure("일기");
+//        category1st.setDetailCategory(detail1nd);
+//        category2nd.setDetailCategory(detail2nd);
+//        System.out.println("======================================="+category1st.getName());
+//
+//        /*make a parentsModel*/
+//        ParentsModel parents1st = new ParentsModel(category1st.getName(),R.drawable.add, true);
+//        for(int i=0;i<category1st.getDetailSize();i++)
+//            parents1st.addChildModel(new ChildModel(category1st.getDetailCategory().get(i)));
+//
+//        ParentsModel parents2nd = new ParentsModel(category2nd.getName(),R.drawable.add, true);
+//        for(int i=0;i<category2nd.getDetailSize();i++)
+//            parents2nd.addChildModel(new ChildModel(category2nd.getDetailCategory().get(i)));
 
         /* drawer */
 //        List<String> items = new ArrayList<String>( // test
@@ -218,63 +211,79 @@ public class FirstActivity extends AppCompatActivity
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        final NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        navigationExpandableListView // category, item
-                .init(this)
-//                .addParentsModel(new ParentsModel("Test0"))
-//                .addParentsModel(new ParentsModel("Test1", R.drawable.newbackground, false, true, false))
-//                .addParentsModel(categoryModel)
-                .addParentsModel(parents1st)
-                .addParentsModel(parents2nd)
-                .addParentsModel(new ParentsModel("HOME"))
-                .build()
-                .addOnGroupClickListener(new ExpandableListView.OnGroupClickListener() { // action of a selected category
+        navigationExpandableListView.init(this); // category, item
+        for(int i = 0 ; i < parentsModelPool.size() ; i++){
+            navigationExpandableListView.addParentsModel(parentsModelPool.get(i));
+        }
+        navigationExpandableListView.addParentsModel(new ParentsModel("HOME"));
+        navigationExpandableListView.build();
+        final int numParentModel = parentsModelPool.size();
+
+        navigationExpandableListView.addOnGroupClickListener(new ExpandableListView.OnGroupClickListener() { // action of a selected category
                     @Override
                     public boolean onGroupClick(ExpandableListView parent, View v, int groupPosition, long id) {
-                        navigationExpandableListView.setSelected(groupPosition);
 
-                        //drawer.closeDrawer(GravityCompat.START);
-                        if (id == 0) {
-//                            drawer.closeDrawer(GravityCompat.START); // close from right to left
-                        } else if (id == 1) {
-//                            drawer.closeDrawer(GravityCompat.START);
-                        } else if (id == 2) {
+
+
+                        navigationExpandableListView.setSelected(groupPosition);
+                        if(id == numParentModel){
                             getSupportFragmentManager().beginTransaction()
                                     .replace(R.id.frame, main)
                                     .commit();
                             drawer.closeDrawer(GravityCompat.START);
-                        } else if (id == 3) {
-                            drawer.closeDrawer(GravityCompat.START);
-                        } else if (id == 4) {
-                            drawer.closeDrawer(GravityCompat.START);
-                        } else if (id == 5) {
-                            drawer.closeDrawer(GravityCompat.START);
                         }
+                        else{
+                            ParentsModel parentsModel = (ParentsModel) navigationExpandableListView.getItemAtPosition(groupPosition);
+                            if(parentsModel.isHasChild() == true){
+                                drawer.closeDrawer(GravityCompat.START); // close from right to left
+                            }
+                            else{
+                                ArrayList<Memo> memoPool = nlpManager.getCategoryManager().getMemoPoolInCategory(parentsModel.getTitle());
+                                if(memoPool != null) {
+                                    String[] listItem = new String[memoPool.size()];
+                                    for(int i = 0 ; i < memoPool.size() ; i++){
+                                        listItem[i] = memoPool.get(i).getMemoName();
+                                    }
+                                    ItemListFragment itemListFragment = new ItemListFragment();
+                                    items = listItem;
+                                    getSupportFragmentManager().beginTransaction()
+                                            .replace(R.id.frame, itemListFragment)
+                                            .commit();
+                                }
+                                drawer.closeDrawer(GravityCompat.START);
+                            }
+                        }
+
                         return false;
                     }
-                })
-                .addOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+                });
+
+        navigationExpandableListView.addOnChildClickListener(new ExpandableListView.OnChildClickListener() {
                     @Override
                     public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) { // action of a selecetd item after GroupAction
                         navigationExpandableListView.setSelected(groupPosition, childPosition);
-                        String[] listItem = {Integer.toString(groupPosition), Integer.toString(childPosition)};
-                        if (id == 0) {
+
+                        ChildModel childModel = (ChildModel) navigationExpandableListView.getItemAtPosition(childPosition);
+                        ArrayList<Memo> memoPool = nlpManager.getCategoryManager().getMemoPoolInCategory(childModel.getTitle());
+                        if(memoPool != null) {
+                            String[] listItem = new String[memoPool.size()];
+                            for (int i = 0; i < memoPool.size(); i++) {
+                                listItem[i] = memoPool.get(i).getMemoName();
+                            }
                             ItemListFragment itemListFragment = new ItemListFragment();
                             items = listItem;
                             getSupportFragmentManager().beginTransaction()
                                     .replace(R.id.frame, itemListFragment)
                                     .commit();
-                        } else if (id == 1) {
-                        } else if (id == 2) {
-                        } else if (id == 3) {
+
                         }
                         drawer.closeDrawer(GravityCompat.START);
                         return false;
                     }
                 });
-        navigationExpandableListView.expandGroup(2);
-
+            navigationExpandableListView.expandGroup(2);
     }
 }

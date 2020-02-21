@@ -7,8 +7,10 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.github.irshulx.wysiwyg.Database.DatabaseManager;
+import com.github.irshulx.wysiwyg.Model.Category;
 import com.github.irshulx.wysiwyg.Model.Memo;
 import com.github.irshulx.wysiwyg.Model.Noun;
+import com.github.irshulx.wysiwyg.Model.SimilariryResult;
 import com.github.irshulx.wysiwyg.Model.Word;
 import com.github.irshulx.wysiwyg.Utilities.RealPathUtil;
 import com.itextpdf.text.pdf.PdfReader;
@@ -19,6 +21,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Vector;
 
 public class NLPManager extends AppCompatActivity implements Serializable {
@@ -27,6 +31,14 @@ public class NLPManager extends AppCompatActivity implements Serializable {
     private MemoManager memoManager;
     private CategoryManager categoryManager;
     private Twitter twitter;
+
+    public MemoManager getMemoManager() {
+        return memoManager;
+    }
+
+    public void setMemoManager(MemoManager memoManager) {
+        this.memoManager = memoManager;
+    }
 
     private NLPManager(Twitter twitter) {
         memoManager = new MemoManager();
@@ -47,7 +59,15 @@ public class NLPManager extends AppCompatActivity implements Serializable {
             return nlpManager;
     }
 
-    public Vector<Noun> getResultFrequencyDataFromPdfFilePath(String filePath) throws FileNotFoundException {
+    public void addMemoIntoCategory(Memo memo, Category category){
+        memo.setCategory(category);
+        categoryManager.getCategortPool().add(category);
+        category.getMemoPool().add(memo);
+        category.setNumMemo(category.getNumMemo()+1);
+    }
+
+
+    public ArrayList<Noun> getResultFrequencyDataFromPdfFilePath(String filePath) throws FileNotFoundException {
             File file = new File(filePath);
             String result = "";
         PdfReader reader = null;
@@ -64,18 +84,11 @@ public class NLPManager extends AppCompatActivity implements Serializable {
         return twitter.getNounsWithFrequency(result);
     }
 
-    public boolean pushNewMemoAndResultFrequency(String memoName, Vector<Noun> nouns, int numPage){
-        try{
+    public Memo pushNewMemoAndResultFrequency(String memoName, ArrayList<Noun> nouns, int numPage){
+
             Memo memo = memoManager.createNewMemoAndReturn(memoName, imagePath, numPage);
             memoManager.pushWordAndMemoWordBag(nouns, memo);
-
-            return true;
-        }
-        catch(Exception e){
-            Log.e("Error", e.getMessage());
-//            Toast.makeText(getApplicationContext(), "새로운 메모추가를 실패했습니다.", Toast.LENGTH_SHORT);
-        }
-        return false;
+            return memo;
     }
 
     public void printMemoDB(){
@@ -111,7 +124,30 @@ public class NLPManager extends AppCompatActivity implements Serializable {
             Log.e("tf ",c.getInt(2) + "");
         }
     }
-    
+
+    public ArrayList<Category> getRecommandedCategories(Memo memo){
+        final int numRecommand = 3;
+        final ArrayList<Category> recommandCategories = new ArrayList<Category>();
+        ArrayList<Category> categoryPool = categoryManager.getCategortPool();
+        ArrayList<Double> memoVector = memoManager.getMemoVector(memo);
+        ArrayList<SimilariryResult> results = new ArrayList<SimilariryResult>();
+        for(int i = 0 ; i < categoryPool.size() ; i++){
+            Category category = categoryPool.get(i);
+            ArrayList<Double> categoryCenterVector = categoryManager.getCenterVector(category, memoManager);
+            double similarity = NLP_math.getCosineSimilarity(memoVector, categoryCenterVector);
+            results.add(new SimilariryResult(memo, category , similarity, -1));
+        }
+        Collections.sort(results);
+
+        for(int i = 0 ; i < results.size() ; i++){
+            if(i == numRecommand)
+                break;
+            Log.e("in_add", "add");
+            recommandCategories.add((Category)results.get(i).getCompareObejct());
+        }
+        Log.e("in", recommandCategories.size() + " ");
+        return recommandCategories;
+    }
 
     public void saveAllNlpData(){
         this.saveCategoryInDatabase();;

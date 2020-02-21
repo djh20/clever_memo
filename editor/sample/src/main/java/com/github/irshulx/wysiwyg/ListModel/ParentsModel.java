@@ -8,9 +8,9 @@ import java.util.List;
 public class ParentsModel {
     String title;
     int resource = -1;
-    boolean isNew = false; // is it a new category?
-    boolean hasChild = false;
-    boolean isSelected = false;
+    boolean isNew;
+    boolean hasChild;
+    boolean isSelected;
 
     List<ChildModel> childModelList = new ArrayList<>();
     List<ParentsModel> parentsModelList = new ArrayList<>();
@@ -22,12 +22,17 @@ public class ParentsModel {
     public ParentsModel(String title, int resource){
         this.title = title;
         this.resource = resource;
+        isNew = false;
+        hasChild = false;
+        isSelected = false;
     }
 
     public ParentsModel(String title, int resource, boolean hasChild){
         this.title = title;
         this.resource = resource;
         this.hasChild = hasChild;
+        isNew = false;
+        isSelected = false;
     }
 
     public ParentsModel(String title, int resource, boolean hasChild, boolean isNew
