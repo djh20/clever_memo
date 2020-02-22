@@ -64,7 +64,6 @@ public class ExpandableNavigationListView extends ExpandableListView {
     public ExpandableNavigationListView addOnGroupClickListener(OnGroupClickListener onGroupClickListener) {
         this.onGroupClickListener = onGroupClickListener;
         setOnGroupClickListener(this.onGroupClickListener);
-
         return this;
     }
 

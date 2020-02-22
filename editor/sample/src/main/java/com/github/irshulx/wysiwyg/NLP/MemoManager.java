@@ -9,17 +9,42 @@ import com.github.irshulx.wysiwyg.Model.Word;
 import com.github.irshulx.wysiwyg.Model.WordBag;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Vector;
 
 public class MemoManager implements Serializable {
-    Vector<Memo> memoPool;
-    Vector<Word> wordPool;
+    ArrayList<Memo> memoPool;
+    ArrayList<Word> wordPool;
     int lastMemoIndex;
 
     public MemoManager() {
-        this.memoPool = new Vector<Memo>();
-        this.wordPool = new Vector<Word>();
+        this.memoPool = new ArrayList<Memo>();
+        this.wordPool = new ArrayList<Word>();
         lastMemoIndex = 0;
+    }
+
+    public ArrayList<Memo> getMemoPool() {
+        return memoPool;
+    }
+
+    public void setMemoPool(ArrayList<Memo> memoPool) {
+        this.memoPool = memoPool;
+    }
+
+    public ArrayList<Word> getWordPool() {
+        return wordPool;
+    }
+
+    public void setWordPool(ArrayList<Word> wordPool) {
+        this.wordPool = wordPool;
+    }
+
+    public int getLastMemoIndex() {
+        return lastMemoIndex;
+    }
+
+    public void setLastMemoIndex(int lastMemoIndex) {
+        this.lastMemoIndex = lastMemoIndex;
     }
 
     public Memo createNewMemoAndReturn(String memoName, String imagePath, int numPage){
@@ -31,7 +56,7 @@ public class MemoManager implements Serializable {
         return memo;
     }
 
-    public void pushWordAndMemoWordBag(Vector<Noun> nouns, Memo memo){
+    public void pushWordAndMemoWordBag(ArrayList<Noun> nouns, Memo memo){
         for(int i = 0; i < nouns.size() ; i++){
             boolean existFlag = false;
             String word = nouns.get(i).getName();
@@ -53,7 +78,6 @@ public class MemoManager implements Serializable {
                 wordPool.add(newWord);
                 memo.addWordBag(newWord, frequency);
                 updateIdf(newWord);
-                saveTfInDatabase(memo, newWord, frequency);
             }
         }
     }
@@ -102,4 +126,24 @@ public class MemoManager implements Serializable {
     }
 
 
+    public ArrayList<Double> getMemoVector(Memo memo) {
+        ArrayList<Double> vector = new ArrayList<Double>();
+        ArrayList<WordBag> wordBagPool = memo.getWordBagPool();
+        for(int j = 0 ; j < wordPool.size() ; j++) {
+            boolean existFlag = false;
+            Word wordInWords = wordPool.get(j);
+            for(int k = 0 ; k < wordBagPool.size() ; k++) {
+                WordBag wordBagInMemoWordBag = wordBagPool.get(k);
+                Word wordInMemoWordBag = wordBagInMemoWordBag.getWord();
+                if(wordInWords.equals(wordInMemoWordBag)) {
+                    vector.add(wordBagInMemoWordBag.getTfIdf());
+                    existFlag = true;
+                    break;
+                }
+            }
+            if(existFlag == false)
+                vector.add(0.0);
+        }
+        return vector;
+    }
 }

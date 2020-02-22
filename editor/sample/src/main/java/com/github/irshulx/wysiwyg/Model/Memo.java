@@ -1,17 +1,19 @@
 package com.github.irshulx.wysiwyg.Model;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Vector;
 
-public class Memo {
+public class Memo implements Serializable {
     private int memoIndex;
     private String memoName;
     private String imagePath;
     private Category category;
     private String updateDate;
     private String addedDate;
-    private Vector<WordBag> wordBagPool;
+    private ArrayList<WordBag> wordBagPool;
     private int numPage;
 
     public Memo(int memoIndex, String memoName, String imagePath, Category category, String updateDate, String addedDate, int numPage) {
@@ -21,7 +23,7 @@ public class Memo {
         this.category = category;
         this.updateDate = updateDate;
         this.addedDate = addedDate;
-        this.wordBagPool = new Vector<WordBag>();
+        this.wordBagPool = new ArrayList<WordBag>();
         this.numPage = numPage;
     }
 
@@ -35,7 +37,7 @@ public class Memo {
         category = null;
         updateDate = dateString;
         addedDate = dateString;
-        wordBagPool = new Vector<WordBag>();
+        wordBagPool = new ArrayList<WordBag>();
         this.numPage = numPage;
     }
 
@@ -87,11 +89,11 @@ public class Memo {
         this.addedDate = addedDate;
     }
 
-    public Vector<WordBag> getWordBagPool() {
+    public ArrayList<WordBag> getWordBagPool() {
         return wordBagPool;
     }
 
-    public void setWordBagPool(Vector<WordBag> wordBagPool) {
+    public void setWordBagPool(ArrayList<WordBag> wordBagPool) {
         this.wordBagPool = wordBagPool;
     }
 

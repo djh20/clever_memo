@@ -1,6 +1,8 @@
 package com.github.irshulx.wysiwyg.Model;
 
-public class Word {
+import java.io.Serializable;
+
+public class Word implements Serializable {
     private String word;
     private int documecntFrequency;
     private int globalFrequency;

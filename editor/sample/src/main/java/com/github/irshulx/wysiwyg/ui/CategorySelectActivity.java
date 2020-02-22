@@ -8,21 +8,29 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.github.irshulx.wysiwyg.Model.Category;
+import com.github.irshulx.wysiwyg.Model.Memo;
+import com.github.irshulx.wysiwyg.NLP.NLPManager;
 import com.github.irshulx.wysiwyg.R;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 public class CategorySelectActivity extends Activity {
     Context context;
@@ -39,9 +47,26 @@ public class CategorySelectActivity extends Activity {
     LinearLayout.LayoutParams lptv;
     LinearLayout.LayoutParams lp;
     GradientDrawable drawable ;
+    NLPManager nlpManager;
+    ArrayList<Category> categoryPool;
+    ArrayList<Category> recommandedCategoryPool;
+    Memo memo;
+    int recommandedCategorySize;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        recommandedCategoryPool = (ArrayList<Category>) getIntent().getSerializableExtra("categoryPool");
+        memo =(Memo) getIntent().getSerializableExtra("memo");
+        if(recommandedCategoryPool == null)
+            recommandedCategorySize = 0;
+        else
+            recommandedCategorySize = recommandedCategoryPool.size();
+
+        Log.e("size", recommandedCategorySize + " ");
+        //
+        nlpManager = NLPManager.getInstance();
+        categoryPool = nlpManager.getCategoryManager().getCategortPool();
+        //
         setContentView(R.layout.activity_category_select);
         context = this;
         mid = (LinearLayout) findViewById(R.id.linearMid);
@@ -75,20 +100,31 @@ public class CategorySelectActivity extends Activity {
         // 3. 현재 화면에 적용
         getWindow().getAttributes().width = boxWidth;
         getWindow().getAttributes().height = (numCategory + numFixMenu)*boxHeight + (int)(((numCategory + numFixMenu)*boxHeight)*0.1);
-        addRecommandCategoryButton(1);
-        addRecommandCategoryButton(2);
-        addRecommandCategoryButton(3);
-        inputSpinner();
+
+        //
+
+        if(recommandedCategorySize != 0){
+            for(int i = 0 ; i < recommandedCategoryPool.size() ; i++){
+                if(i == 3)
+                    break;
+                addRecommandCategoryButton(i+1, recommandedCategoryPool.get(i));
+            }
+        }
+
+        if(categoryPool.size() - recommandedCategorySize > 0)
+            inputSpinner(recommandedCategoryPool);
+
         addNewCategoryButton();
         // 액티비티 바깥화면이 클릭되어도 종료되지 않게 설정하기
         this.setFinishOnTouchOutside(false);
     }
 
-    public void addRecommandCategoryButton(int index){
+    public void addRecommandCategoryButton(int index, Category category){
 
         LinearLayout lay = new LinearLayout(this);
         lay.setOrientation(LinearLayout.HORIZONTAL);
         lay.setLayoutParams(lplay);
+
 
         ImageView imageView = new ImageView(this);
         switch (index){
@@ -106,9 +142,19 @@ public class CategorySelectActivity extends Activity {
         imageView.setLayoutParams(lptv);
         lay.addView(imageView);
 
-        TextView tv = new TextView(this);
+        final TextView tv = new TextView(this);
+
+        //TODO 카테고리 선택시 작동 코드써야함
+        tv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String categoryName = tv.getText().toString();
+                nlpManager.getCategoryManager().addMemoIntoCategory(memo, categoryName);
+                finish();
+            }
+        });
         tv.setGravity(Gravity.CENTER_VERTICAL|Gravity.CENTER);
-        tv.setText("test");
+        tv.setText(category.getCategoryName());
         tv.setTextSize(20);
         tv.setTextColor(Color.BLACK);
         tv.setLayoutParams(lp);
@@ -148,7 +194,20 @@ public class CategorySelectActivity extends Activity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         EditText editText = customLayout.findViewById(R.id.categorydialog_editText);
-                        editText.getText();//겟
+                        boolean isCorrect = false;
+                        while(!isCorrect) {
+                            String categorytName = editText.getText().toString();//
+                            Category category = nlpManager.getCategoryManager().addNewCategory(categorytName);
+                            if (category != null){
+                                nlpManager.addMemoIntoCategory(memo, category);
+                                Log.e("categoryadd", category.getCategoryName());
+                                break;
+                            }
+                            else {
+                                Toast.makeText(getApplicationContext(), "이미 존재하는 카테고리 입니다, 다시입력해 주세요", Toast.LENGTH_LONG);
+                            }
+                        }
+                        finish();
                     }
                 });
                 AlertDialog dialog = builder.create();
@@ -162,7 +221,9 @@ public class CategorySelectActivity extends Activity {
         mid.addView(lay);
     }
 
-    public void inputSpinner(){
+    public void inputSpinner(ArrayList<Category> recommandedCategoryPool){
+        final ArrayList<Category> categoryPool = nlpManager.getCategoryManager().getCategortPool();
+
         LinearLayout lay = new LinearLayout(this);
         lay.setOrientation(LinearLayout.HORIZONTAL);
         lay.setLayoutParams(lplay);
@@ -179,10 +240,36 @@ public class CategorySelectActivity extends Activity {
         Spinner spinner = new Spinner(this);
 
         List<String> data = new ArrayList<>();
-        data.add("가짜 데이터 1"); data.add("가짜 데이터 2"); data.add("가짜 데이터 3"); data.add("가짜 데이터 4"); data.add("가짜 데이터 5");
-        data.add("가짜 데이터 6"); data.add("가짜 데이터 7"); data.add("가짜 데이터 8"); data.add("가짜 데이터 9"); data.add("가짜 데이터 10");
+
+        int addedCategory = 0;
+        for(int i = 0 ; i < recommandedCategoryPool.size() ; i++){
+            Category recommandedCategory = recommandedCategoryPool.get(i);
+            for(int j = 0 ; j < categoryPool.size() ; j++){
+                Category category = categoryPool.get(j);
+                if(category != recommandedCategory){
+                    data.add(category.getCategoryName());
+                    addedCategory++;
+                }
+            }
+        }
+        final int addedCategoryInSpinner = addedCategory;
+
         AdapterSpinner adapterSpinner = new AdapterSpinner(this,data);
         spinner.setAdapter(adapterSpinner);
+
+        //TODO 카테고리 선택시 작용 추가
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long l) {
+                String selectedCategoryName = adapterView.getItemAtPosition(position).toString();
+                nlpManager.getCategoryManager().addMemoIntoCategory(memo, selectedCategoryName);
+                finish();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
         LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(layWidth/5*4, layHeight-10);
         spinnerParams.setMargins(layWidth/20,5,0,0);
         spinner.setLayoutParams(spinnerParams);

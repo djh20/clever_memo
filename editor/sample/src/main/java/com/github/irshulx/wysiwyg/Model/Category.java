@@ -1,18 +1,45 @@
 package com.github.irshulx.wysiwyg.Model;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Vector;
 
-public class Category {
+public class Category implements Serializable {
     private String categoryName;
-    private Vector<Memo> memoPool;
-    private Vector<Category> childCategoryPool;
+    private ArrayList<Memo> memoPool;
+    private ArrayList<Category> childCategoryPool;
+    private Category parent;
+
+    public ArrayList<Memo> getMemoPool() {
+        return memoPool;
+    }
+
+    public void setMemoPool(ArrayList<Memo> memoPool) {
+        this.memoPool = memoPool;
+    }
+
     private int numMemo;
 
     public Category(String categoryName, int numMemo) {
         this.categoryName = categoryName;
         this.numMemo = numMemo;
-        memoPool = new Vector<Memo>();
-        childCategoryPool = new Vector<Category>();
+        memoPool = new ArrayList<Memo>();
+        childCategoryPool = new ArrayList<Category>();
+    }
+
+    public Category getParent() {
+        return parent;
+    }
+
+    public void setParent(Category parent) {
+        this.parent = parent;
+    }
+
+    public Category(String categoryName) {
+        this.categoryName = categoryName;
+        this.numMemo = 0;
+        memoPool = new ArrayList<Memo>();
+        childCategoryPool = new ArrayList<Category>();
     }
 
     public void addChildCategory(Category category){
@@ -23,11 +50,11 @@ public class Category {
         memoPool.add(memo);
     }
 
-    public Vector<Category> getChildCategoryPool() {
+    public ArrayList<Category> getChildCategoryPool() {
         return childCategoryPool;
     }
 
-    public void setChildCategoryPool(Vector<Category> childCategoryPool) {
+    public void setChildCategoryPool(ArrayList<Category> childCategoryPool) {
         this.childCategoryPool = childCategoryPool;
     }
 

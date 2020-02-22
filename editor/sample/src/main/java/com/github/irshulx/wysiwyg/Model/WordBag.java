@@ -1,6 +1,8 @@
 package com.github.irshulx.wysiwyg.Model;
 
-public class WordBag {
+import java.io.Serializable;
+
+public class WordBag implements Serializable {
     private Word word;
     private int termFrequency;
 
@@ -12,7 +14,9 @@ public class WordBag {
     public int getTermFrequency() {
         return termFrequency;
     }
-
+    public double getTfIdf(){
+        return word.getIdf() * termFrequency;
+    }
     public Word getWord() {
         return word;
     }
