@@ -2,12 +2,17 @@ package com.github.irshulx.wysiwyg.NLP;
 
 import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,22 +21,34 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.NestedScrollView;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.animation.ScaleAnimation;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.irshulx.wysiwyg.Database.DatabaseManager;
@@ -43,15 +60,19 @@ import com.github.irshulx.wysiwyg.R;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.BitmapManager;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.DrawContaioner;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.MyPaintView;
+import com.github.irshulx.wysiwyg.Utilities.DrawManager.PaintConfig;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.PaintViewManager;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.SerialBitmap;
 import com.github.irshulx.wysiwyg.Utilities.RealPathUtil;
 import com.github.irshulx.wysiwyg.ui.CategorySelectActivity;
+import com.github.irshulx.wysiwyg.ui.toolFragment;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
+import com.rtugeek.android.colorseekbar.ColorSeekBar;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -77,23 +98,35 @@ public class MemoLoadManager extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final int FILE_SELECT_CODE = 0;
+    PaintConfig pc = PaintConfig.getInstance();
+    int startP;
+    int toLoadP;
     String imageFilePath;
+    private int change_stroke = 10; // 굵기 변경용
+    private int change_color; // 색상 변경용
+    private ColorSeekBar mColorSeekBar;
+    private SeekBar strokeSeekBar;
+    private float mScale = 1f;
+    private Drawable tempicon;
+    private ScaleGestureDetector mScaleDetector;
+    GestureDetector gestureDetector;
     Uri uri;
+    boolean eraseMode = false;
     int pagew, pageh;
     int pdfCount;
-    int lastTouch;
     String memoName;
     int tColor = 0;
     NLPManager nlpManager;
     static final int LOAD_PAGE = 20;
-    static final int NUM_PAGE_LOAD_BY_SCROLL = 5;
     int loadedPageIndex;
     File memoFolder;
     RelativeLayout scroll;
     BitmapManager bitmapManager;
     int numLoadedPage;
     PaintViewManager paintViewManager;
-    boolean loadThreadUsing = false;
+    boolean onTopUsing = false;
+    boolean onBOtUsing = false;
+    DatabaseManager databaseManager;
 
 
 
@@ -103,10 +136,32 @@ public class MemoLoadManager extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdfcanvas);
         bitmapManager = BitmapManager.getInstance();
+        databaseManager = DatabaseManager.getInstance();
         nlpManager = NLPManager.getInstance();
         imageFilePath = getFilesDir().toString() + "/memoImage";
-        showFileChooser();
         scroll = findViewById(R.id.scroll);
+        gestureDetector = new GestureDetector(this, new GestureListener());
+        mScaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener()
+        {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector)
+            {
+                float scale = 1 - detector.getScaleFactor();
+                float prevScale = mScale;
+                mScale += scale;
+                if (mScale < 0.1f) // Minimum scale condition:
+                    mScale = 0.1f;
+                if (mScale > 10f) // Maximum scale condition:
+                    mScale = 10f;
+                ScaleAnimation scaleAnimation = new ScaleAnimation(1f / prevScale, 1f / mScale, 1f / prevScale, 1f / mScale, detector.getFocusX(), detector.getFocusY());
+                scaleAnimation.setDuration(0);
+                scaleAnimation.setFillAfter(true);
+                ScrollView layout =(ScrollView) findViewById(R.id.container);
+                layout.startAnimation(scaleAnimation);
+                return true;
+            }
+        });
+        showFileChooser();
         loadedPageIndex = 0 ;
         final ScrollView scrollView = findViewById(R.id.container);
         //TODO 스크롤 바닥/천장에 닿았을때의 기능 작성
@@ -114,217 +169,149 @@ public class MemoLoadManager extends AppCompatActivity {
             scrollView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
 
                 @Override
-              public void onScrollChange(View view, int i0, int i1, int i2, int i3) {
+                public void onScrollChange(View view, int i0, int i1, int i2, int i3) {
                     boolean using = false;
                     View view2 = (View) scrollView.getChildAt(scrollView.getChildCount()-1);
                     // Calculate the scrolldiff
                     int diff = (view2.getBottom()-(scrollView.getHeight()+scrollView.getScrollY()));
-                    Log.e("diff",diff+"");
 
-                    if(scrollView.getScrollY() == 0) { // 천장
-                        if(loadedPageIndex + 1 - LOAD_PAGE > 0 ){
-                        scrollView.setScrollY(scrollView.getScrollY() + 100);
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                onTop();
+                    if(scrollView.getScrollY() <= (loadedPageIndex + 1 - LOAD_PAGE)*pageh + pageh*5 && onTopUsing == false)  { // 천장
+                        if (loadedPageIndex != LOAD_PAGE-1){
+                            for(int i = 0 ; i < 3 ; i++){
+//                                scrollView.setScrollY(scrollView.getScrollY() + 100);
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        onTop();
+                                    }
+                                }).start();
                             }
-                        }).start();
                         }
-
                     }
-                    if( diff ==0 && loadedPageIndex != pdfCount-1) // 바닥
-                    {
-                        scrollView.setScrollY(scrollView.getScrollY() - 100);
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                onBottom();
+                    if(scrollView.getScrollY() >= loadedPageIndex*pageh - pageh*5 && onBOtUsing == false){
+                        for(int i = 0 ; i <3 ; i++) {
+                            if(loadedPageIndex != pdfCount - 1){
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        onBottom();
+                                    }
+                                }).start();
                             }
-                        }).start();
-
-//                            int numToLoad;
-//                            if (pdfCount - loadedPageIndex >= NUM_PAGE_LOAD_BY_SCROLL)
-//                                numToLoad = NUM_PAGE_LOAD_BY_SCROLL;
-//                            else
-//                                numToLoad = pdfCount - loadedPageIndex;
-//                            Log.e("numToLoad", numToLoad + " ");
-//                            if (numToLoad > 0) {
-//                                final int numToLoadFinal = numToLoad;
-//                                new Thread(new Runnable() {
-//                                    @Override
-//                                    public void run() {
-//                                        saveAndLoadObjectByPageNum(loadedPageIndex - LOAD_PAGE + 1, loadedPageIndex - LOAD_PAGE + NUM_PAGE_LOAD_BY_SCROLL
-//                                                , loadedPageIndex + 1, loadedPageIndex + numToLoadFinal, numToLoadFinal);
-//                                    }
-//                                }).start();
-//
-//                            }
+                        }
                     }
+
                 }
+
             });
+        }
+
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        super.dispatchTouchEvent(event);
+        mScaleDetector.onTouchEvent(event);
+        gestureDetector.onTouchEvent(event);
+        return gestureDetector.onTouchEvent(event);
+    }
+
+//step 4: add private class GestureListener
+
+    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+        // event when double tap occurs
+        @Override
+        public boolean onDoubleTap(MotionEvent e) {
+            // double tap fired.
+            return true;
         }
     }
 
-    synchronized public void onTop() {
+    synchronized public int onTop() {
+        if (loadedPageIndex == LOAD_PAGE-1)
+            return 0;
         try {
+            onTopUsing = true;
             //save
             String path = imageFilePath + "/" + memoName;
             final MyPaintView removeView = paintViewManager.getMyPaintViewById(loadedPageIndex + 1);
-            (MemoLoadManager.this).runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    scroll.removeView(removeView);
-                }
-            });
-
-            File file = new File(path, removeView.getDrawContaioner().getPageNum() + ".dat");
-            Log.e("save", file.getAbsolutePath());
-            FileOutputStream fos = null;
-            fos = new FileOutputStream(file);
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(removeView.getDrawContaioner());
-            oos.flush();
-            oos.close();
-            fos.close();
+            if(removeView.isModified() == true)
+                saveToDatabase(removeView.getDrawContaioner());
             Log.e("결과", bitmapManager.isExist(removeView.getSerialBitMap()) + "");
-            bitmapManager.setUnUse(removeView.getDrawContaioner().getmBit().getBitmap());
-            paintViewManager.remove(removeView);
+            bitmapManager.setUnUse(removeView.getDrawContaioner().getmBit().getBitmap(), true);
+            bitmapManager.setUnUse(removeView.getDrawContaioner().getCanvasBit().getBitmap(), true);
 
-            final MyPaintView cleared = new MyPaintView(this, null);
-            File objectFile = new File(path + "/" + (loadedPageIndex + 1 - LOAD_PAGE) + ".dat");
-            FileInputStream fis = new FileInputStream(objectFile);
-            ObjectInputStream ios = new ObjectInputStream(fis);
-            final DrawContaioner drawContaioner = (DrawContaioner) ios.readObject();
-            drawContaioner.createmPaint();
-            cleared.setupToUse(this);
-            cleared.setDrawContaioner(drawContaioner);
-            cleared.setId(loadedPageIndex + 1 - LOAD_PAGE);
-            RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            layoutParams.addRule(RelativeLayout.BELOW, loadedPageIndex - LOAD_PAGE);
-            cleared.setLayoutParams(layoutParams);
-            paintViewManager.addPaintView(cleared);
-            cleared.setImageBitmap(cleared.getDrawContaioner().getmBit().getBitmap());
+            final MyPaintView cleared = paintViewManager.getMyPaintViewById(loadedPageIndex  - LOAD_PAGE + 1);
+            final DrawContaioner drawContaioner = loadPageFromDatabase(loadedPageIndex  - LOAD_PAGE);
+            if(drawContaioner.getCanvasBit() == null){
+                SerialBitmap serialBitmap = bitmapManager.getUnUsingBitmap();
+                serialBitmap.setBitmap(Bitmap.createBitmap(drawContaioner.getWidth(),drawContaioner.getHeight(), Bitmap.Config.ARGB_8888));
+                drawContaioner.setCanvasBit(serialBitmap);
+            }
             (MemoLoadManager.this).runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    scroll.addView(cleared);
+                    cleared.setDrawContaioner(drawContaioner);
+                    cleared.setImageBitmap(cleared.getDrawContaioner().getmBit().getBitmap());
+                    paintViewManager.replace(removeView, getApplicationContext());
+                    cleared.setImageBitmap(cleared.getDrawContaioner().getmBit().getBitmap());
                     scroll.requestLayout();
                 }
             });
+            onTopUsing = false;
             loadedPageIndex--;
             Log.e("끝남", "끝남");
         } catch (Exception e) {
             Log.e("io", e.getMessage());
         }
-
-
-
-
+        return 0;
     }
 
-    synchronized public void saveAndLoadObjectByPageNum(final int startPage, final int endPage, final int startLoadPage, final int endLoadPage, final int numToLoad){
 
-        Log.e("startPage", startPage + "");
-        Log.e("endPage", endPage + "");
 
-                    if(paintViewManager.getMyPaintViewById(startPage+1) != null && paintViewManager.getMyPaintViewById(startPage+1).getDrawContaioner() != null) {
-                        Log.e("진입", "진입");
-                        final String path = imageFilePath + "/" + memoName;
-                        for (int i = startPage; i <= endPage; i++) {
-                            final int viewId = i +1;
-                            File file = new File(path + "/" + i);
-                            Log.e("save", file.getAbsolutePath() + Thread.currentThread().getId());
-
-                            FileOutputStream fos = null;
-                            MyPaintView myPaintView = paintViewManager.getMyPaintViewById(viewId);
-                            Log.e("pageNUm", myPaintView.getDrawContaioner().getPageNum() + "");
-                            DrawContaioner drawContaioner = myPaintView.getDrawContaioner();
-                            try {
-                                fos = new FileOutputStream(file);
-                                ObjectOutputStream oos = new ObjectOutputStream(fos);
-                                oos.writeObject(drawContaioner);
-                                oos.flush();
-                                oos.close();
-                                fos.close();
-                            } catch (Exception e) {
-                                Log.e("so", e.getMessage());
-                            }
-                            (MemoLoadManager.this).runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    paintViewManager.clearPaintViewByid(viewId);
-                                }
-                            });
-                        }
-                        try {
-                            loadSavedPage(startLoadPage, endLoadPage, true);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (ClassNotFoundException e) {
-                            e.printStackTrace();
-                        }
-                    }
-    }
-
-    synchronized public void onBottom(){
+    synchronized public int onBottom(){
+        if(loadedPageIndex == pdfCount - 1)
+            return 0;
         try {
-            Log.e("loadedPageIndex", loadedPageIndex - LOAD_PAGE + 2 + " ");
-            //save
-            String path = imageFilePath + "/" + memoName;
+            Log.e("지울려고 하는 것", loadedPageIndex - LOAD_PAGE + 2 +"");
+            onBOtUsing = true;
             final MyPaintView removeView = paintViewManager.getMyPaintViewById(loadedPageIndex - LOAD_PAGE + 2);
+            if(removeView.isModified() == true)
+                saveToDatabase(removeView.getDrawContaioner());
+
+
+            bitmapManager.setUnUse(removeView.getDrawContaioner().getmBit().getBitmap(), true);
+            bitmapManager.setUnUse(removeView.getDrawContaioner().getCanvasBit().getBitmap(), true);
+
+            final MyPaintView cleared = paintViewManager.getMyPaintViewById(loadedPageIndex +2);
+            final DrawContaioner drawContaioner = loadPageFromDatabase(loadedPageIndex + 1);
+            if(drawContaioner.getCanvasBit() == null){
+                SerialBitmap serialBitmap = bitmapManager.getUnUsingBitmap();
+                serialBitmap.setBitmap(Bitmap.createBitmap(drawContaioner.getWidth(),drawContaioner.getHeight(), Bitmap.Config.ARGB_8888));
+                drawContaioner.setCanvasBit(serialBitmap);
+            }
             (MemoLoadManager.this).runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    scroll.removeView(removeView);
-                }
-            });
-
-            File file = new File(path, removeView.getDrawContaioner().getPageNum() + ".dat");
-            Log.e("save", file.getAbsolutePath());
-            FileOutputStream fos = null;
-            fos = new FileOutputStream(file);
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(removeView.getDrawContaioner());
-            oos.flush();
-            oos.close();
-            fos.close();
-            Log.e("결과", bitmapManager.isExist(removeView.getSerialBitMap())+"");
-            bitmapManager.setUnUse(removeView.getDrawContaioner().getmBit().getBitmap());
-            paintViewManager.remove(removeView);
-
-            final MyPaintView cleared = new MyPaintView(this, null);
-            File objectFile = new File(path + "/" + (loadedPageIndex + 1) + ".dat");
-            FileInputStream fis = new FileInputStream(objectFile);
-            ObjectInputStream ios = new ObjectInputStream(fis);
-            final DrawContaioner drawContaioner = (DrawContaioner) ios.readObject();
-            drawContaioner.createmPaint();
-            cleared.setupToUse(this);
-            cleared.setDrawContaioner(drawContaioner);
-            cleared.setId(loadedPageIndex + 2);
-            RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            layoutParams.addRule(RelativeLayout.BELOW, loadedPageIndex + 1);
-            cleared.setLayoutParams(layoutParams);
-            paintViewManager.addPaintView(cleared);
-            cleared.setImageBitmap(cleared.getDrawContaioner().getmBit().getBitmap());
-            (MemoLoadManager.this).runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    scroll.addView(cleared);
+                    paintViewManager.replace(removeView, getApplicationContext());
+                    cleared.setDrawContaioner(drawContaioner);
+                    cleared.setImageBitmap(cleared.getDrawContaioner().getmBit().getBitmap());
                     scroll.requestLayout();
                 }
             });
             loadedPageIndex++;
-            Log.e("끝남", "끝남");
+            onBOtUsing = false;
         }
-            catch (Exception e){
-            Log.e("io", e.getMessage());
-            }
-
-
-
-
+        catch (Exception e){
+            Log.e("io", e.getMessage() + "");
+        }
+        return 0;
     }
+
 
 
 
@@ -393,6 +380,7 @@ public class MemoLoadManager extends AppCompatActivity {
                         }).start();
                         try {
                             loadPdfAndSave();
+                            Log.e("이름", memoName);
                             paintViewManager = new PaintViewManager(this, scroll, pdfCount, pagew, pageh);
                             loadSavedPage(0, LOAD_PAGE, false);
                         } catch (Exception e) {
@@ -412,11 +400,7 @@ public class MemoLoadManager extends AppCompatActivity {
         final int pageNum = file.list().length;
 
         if(paintViewManager == null){
-            File objectFile;
-            objectFile = new File(path + "/" + 0 + ".dat");
-            FileInputStream fis = new FileInputStream(objectFile);
-            ObjectInputStream ios = new ObjectInputStream(fis);
-            final DrawContaioner drawContaioner = (DrawContaioner) ios.readObject();
+            DrawContaioner drawContaioner = loadPageFromDatabase(0);
             paintViewManager = new PaintViewManager(getApplicationContext(), scroll, pageNum, drawContaioner.getWidth(), drawContaioner.getHeight());
         }
         Log.e("진입", "로드진입");
@@ -429,31 +413,18 @@ public class MemoLoadManager extends AppCompatActivity {
                     for(int i = startPage ; i < toLoadPage; i++){
                         try {
                             final int viewId = i+1;
-                            Log.e("Dasd", viewId + "");
-                            File objectFile;
-                            objectFile = new File(path + "/" + i + ".dat");
-                            FileInputStream fis = new FileInputStream(objectFile);
-                            ObjectInputStream ios = new ObjectInputStream(fis);
-                            final DrawContaioner drawContaioner = (DrawContaioner) ios.readObject();
-
-                            Log.e("Dasd2", viewId + "");
-                            drawContaioner.createmPaint();
+                            final DrawContaioner drawContaioner = loadPageFromDatabase(i);
                             drawContaioner.setPageNum(i);
-                            if (isLoaded == true)
-                                (MemoLoadManager.this).runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        paintViewManager.addNewViewById(getApplicationContext(),drawContaioner,viewId);
-                                    }
-                                });
-                            else {
-                                paintViewManager.setContainerById(viewId, drawContaioner);
-                                paintViewManager.setupToUseById(viewId, getApplicationContext());
+                            if(drawContaioner.getCanvasBit() == null){
+                                SerialBitmap serialBitmap = bitmapManager.getUnUsingBitmap();
+                                serialBitmap.setBitmap(Bitmap.createBitmap(drawContaioner.getWidth(),drawContaioner.getHeight(), Bitmap.Config.ARGB_8888));
+                                drawContaioner.setCanvasBit(serialBitmap);
                             }
 
+                            paintViewManager.setContainerById(viewId, drawContaioner);
+                            paintViewManager.setupToUseById(viewId, getApplicationContext());
                             pagew = drawContaioner.getWidth();
                             pagew = drawContaioner.getHeight();
-
                             (MemoLoadManager.this).runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -502,6 +473,7 @@ public class MemoLoadManager extends AppCompatActivity {
         final PdfiumCore pdfiumCore = new PdfiumCore(this);
 
         final PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
+
         pdfCount = pdfiumCore.getPageCount(pdfDocument);
         Log.e("pn", pdfCount + "");
         numLoadedPage = 0 ;
@@ -510,12 +482,14 @@ public class MemoLoadManager extends AppCompatActivity {
 
         for(int i = 0 ; i < NUM_THREAD ; i++){
             final int batchNum = i;
-             new Thread(new Runnable() {
+            new Thread(new Runnable() {
                 @RequiresApi(api = Build.VERSION_CODES.KITKAT)
                 @Override
                 public void run() {
                     for (int j = batchNum ; j < pdfCount ; j += NUM_THREAD) {
-                        int toLoadPage = j;
+                        try {
+                            int toLoadPage = j;
+                            Log.e("save..", toLoadPage + "");
                             pdfiumCore.openPage(pdfDocument, toLoadPage);
                             final int width = pdfiumCore.getPageWidthPoint(pdfDocument, toLoadPage);
                             final int height = pdfiumCore.getPageHeightPoint(pdfDocument, toLoadPage);
@@ -524,39 +498,40 @@ public class MemoLoadManager extends AppCompatActivity {
                             SerialBitmap bitmap = bitmapManager.getUnUsingBitmap();
                             pagew = bitMapWidth;
                             pageh = bitMapHeight;
+                            if(bitmap.getBitmap() == null)
+                                bitmap.setBitmap(Bitmap.createBitmap(bitMapWidth, bitMapHeight, Bitmap.Config.RGB_565));
 
-                            bitmap.setBitmap(Bitmap.createBitmap(bitMapWidth,bitMapHeight, Bitmap.Config.RGB_565));
                             pdfiumCore.renderPageBitmap(pdfDocument, bitmap.getBitmap(), toLoadPage, 0, 0,
                                     bitMapWidth, bitMapHeight);
-                            bitmap.setBitmap(Bitmap.createScaledBitmap(bitmap.getBitmap(), (int) (bitMapWidth / 0.8), (int) (bitMapHeight / 0.8), true));
                             DrawContaioner drawContaioner = new DrawContaioner();
                             drawContaioner.setDetail(bitmap, toLoadPage , bitMapWidth, bitMapHeight);
                             drawContaioner.setPageNum(toLoadPage);
-                            Log.e("toLoadPage", toLoadPage +"");
 
-                            File file = new File(FILE_PATH ,toLoadPage+".dat");
-                            Log.e("save", file.getAbsolutePath());
+                            saveToDatabase(drawContaioner);
 
-                            FileOutputStream fos = null;
-                            try {
-                                fos = new FileOutputStream(file);
-                                ObjectOutputStream oos = new ObjectOutputStream(fos);
-                                oos.writeObject(drawContaioner);
-                                oos.flush();
-                                oos.close();
-                                fos.close();
-                                bitmapManager.setUnUse(bitmap);
-                            } catch (Exception e) {
-                                Log.e("so", e.getMessage());
-                            }
+                            bitmapManager.setUnUse(bitmap, false);
+
                             numLoadedPage++;
-                            Log.e("nlp", numLoadedPage +"");
+                            if (numLoadedPage == pdfCount) {
+                                fd.close();
+                                pdfiumCore.closeDocument(pdfDocument);
+                            }
+
+                        } catch (Exception e) {
+                            Log.e("so", e.getMessage());
                         }
+                    }
                 }
             }).start();
         }
 
-        while(numLoadedPage < pdfCount -1){Log.e("이유는?", numLoadedPage +"  " +  pdfCount);};
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     @Override
@@ -579,280 +554,50 @@ public class MemoLoadManager extends AppCompatActivity {
                 })
                 .show();
     }
+    public DrawContaioner loadPageFromDatabase(int pageNum){
+        try {
+            Cursor cursor = databaseManager.selectSQL("SELECT * FROM MemoObject Where memoName = '" + memoName + "'and pageNum = " + pageNum);
+            cursor.moveToNext();
+            byte[] tmpBytes = cursor.getBlob(2);
+            ByteArrayInputStream bais = new ByteArrayInputStream(tmpBytes);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            DrawContaioner result = (DrawContaioner) ois.readObject();
+            return result;
+        }
+        catch (Exception e){
+            Log.e("터졋다..", e.getMessage() + "");
+        }
 
+        return null;
+    }
 
-//    void openNewMemoThread() throws FileNotFoundException {
-//        Log.e("mem", ((ActivityManager)this.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass() + "");
-//        Log.e("mem", Runtime.getRuntime().maxMemory() + "");
-//        final RelativeLayout scroll = findViewById(R.id.scroll);
-
-//        final int NUM_LOAD_PAGE = 20;
-//
-//
-//        final ParcelFileDescriptor fd = this.getContentResolver().openFileDescriptor(uri, "r");
-//        final PdfiumCore pdfiumCore = new PdfiumCore(this);
-//
-//
-//        PdfDocument pdfDocument = null;
-//        try {
-//            pdfDocument = pdfiumCore.newDocument(fd);
-//            pdfCount = pdfiumCore.getPageCount(pdfDocument) -1;
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//
-//
-//            paintArr = new MyPaintView[pdfCount];
-//
-//            for (int i = 0; i < NUM_LOAD_PAGE; i++) { // 먼저 20장 로딩
-//                paintArr[i] = new MyPaintView(getApplicationContext(), null,new DrawContaioner());
-//                paintArr[i].setId(i);
-////                paintArr[i].setAdjustViewBounds(true);
-//                scroll.addView(paintArr[i]);
-//                loadedPageIndex = i;
-//            }
-//            Log.e("pdfCount", pdfCount+"");
-//
-//
-
-
-//
-
-
-
-
-//
-//            for(int i = 0 ; i < NUM_LOAD_PAGE ; i++) {
-//                DrawContaioner drawContaioner;
-//                ByteArrayOutputStream stream;
-//                Bitmap tmpBitmap;
-//                pdfiumCore.openPage(pdfDocument, i);
-//                final int width = pdfiumCore.getPageWidthPoint(pdfDocument, i);
-//                final int height = pdfiumCore.getPageHeightPoint(pdfDocument, i);
-//                Log.e("page", pdfiumCore.getPageCount(pdfDocument) + "");
-//                Log.e("width", width + "");
-//                Log.e("height", height + "");
-//                final int pageNum = i;
-//                if (width > 0 && height > 0) {
-//                    pagew = scroll.getMeasuredWidth();
-//                    pageh = Math.round(height * ((float) pagew / width));
-//                    tmpBitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
-//                    pdfiumCore.renderPageBitmap(pdfDocument, tmpBitmap, pageNum, 0, 0,
-//                            pagew, pageh);
-//                    tmpBitmap = Bitmap.createScaledBitmap(tmpBitmap, (int) (pagew / 0.8), (int) (pageh / 0.8), true);
-//                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//                    tmpBitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos);
-//                    tmpBitmap.recycle();
-//                    tmpBitmap = BitmapFactory.decodeByteArray(baos.toByteArray(), 0, baos.size());
-//
-//                    final SerialBitmap finalBitmap = new SerialBitmap(tmpBitmap);
-//                    try {
-//                        baos.flush();
-//                        baos.close();
-//                        drawContaioner = paintArr[pageNum].getDrawContaioner();
-//                        drawContaioner.setDetail(finalBitmap, pageNum, pagew, pageh);
-//                        paintArr[pageNum].setDrawContaioner(drawContaioner);
-//                        (MemoLoadManager.this).runOnUiThread(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-////                                                    paintArr[pageNum].setAdjustViewBounds(true);
-//                                layoutParams.addRule(RelativeLayout.BELOW, pageNum - 1);
-////                                                    paintArr[pageNum].setScaleType(ImageView.ScaleType.FIT_XY);
-//                                paintArr[pageNum].setLayoutParams(layoutParams);
-//                                paintArr[pageNum].measure(pagew, pageh);
-//                                paintArr[pageNum].setImageBitmap(finalBitmap.getBitmap());
-//                                scroll.requestLayout();
-//                            }
-//                        });
-//
-//                    } catch (Exception e) {
-//                        Log.e("dasdsada", e.getMessage());
-//                    }
-//
-//
-//                }
-//            }
-//
-//    }
-
-
-
-
-
-
-
-//    void openNewMemo() {
-//        final RelativeLayout scroll = findViewById(R.id.scroll);
-//        ParcelFileDescriptor fd = null;
-//        try {
-//            fd = this.getContentResolver().openFileDescriptor(uri, "r");
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//        ;
-//
-//        PdfiumCore pdfiumCore = new PdfiumCore(this);
-//        try {
-//            PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
-//            pdfCount = pdfiumCore.getPageCount(pdfDocument);
-//            paintArr = new MyPaintView[pdfCount];
-//            int pageNum = 0;
-//            for (int i = 0; i < pdfCount; i++) {
-//                pdfiumCore.openPage(pdfDocument, pageNum);
-//
-//                int width = pdfiumCore.getPageWidthPoint(pdfDocument, pageNum);
-//                int height = pdfiumCore.getPageHeightPoint(pdfDocument, pageNum);
-//
-//                if (width > 0 && height > 0) {
-//                    pagew = scroll.getMeasuredWidth();
-//                    pageh = height * pagew / width;
-//                    final Bitmap tmpBitmap = Bitmap.createBitmap(pagew, pageh, Bitmap.Config.RGB_565);
-//
-//                    pdfiumCore.renderPageBitmap(pdfDocument, tmpBitmap, pageNum, 0, 0,
-//                            scroll.getMeasuredWidth(), height * scroll.getMeasuredWidth() / width);
-//
-//                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
-//                    tmpBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-//                    byte[] byteStream = stream.toByteArray();
-//                    Bitmap bitmap = BitmapFactory.decodeByteArray(byteStream,0,byteStream.length);
-//
-//
-//                    final int index = i;
-//                    MyPaintView img = new MyPaintView(getApplicationContext(), null, new DrawContaioner(new SerialBitmap(bitmap), i, pagew, pageh));
-//                    img.setId(i);
-//                    paintArr[i] = img;
-//                    final int nowTouch = i;
-//
-//                    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-//                    layoutParams.addRule(RelativeLayout.BELOW, i - 1);
-//                    img.setLayoutParams(layoutParams);
-//                    scroll.addView(img);
-//                    pageNum++;
-//                    loadedPageIndex = i;
-//                }
-//            }
-//            pdfiumCore.closeDocument(pdfDocument);
-//
-//        } catch (IOException ex) {
-//            ex.printStackTrace();
-//        }
-//    }
-
-//    void loadExistMemo(){
-//        String path = imageFilePath + "/" + memoName;
-//        RelativeLayout scroll = findViewById(R.id.scroll);
-//        File file = new File(path);
-//        int pageNum = file.list().length;
-//        Log.e("PageNum", pageNum + "");
-//
-//        try {
-//            pdfCount = pageNum;
-//            paintArr = new MyPaintView[pageNum];
-//            for(int i = 0 ; i < pageNum; i++){
-//                BitmapFactory.Options option = new BitmapFactory.Options();
-//                option.inPreferredConfig = Bitmap.Config.RGB_565;
-//                Bitmap bitmap = BitmapFactory.decodeFile(path + "/" + i + ".dat", option);
-//                pageh = bitmap.getHeight();
-//                pagew = bitmap.getWidth();
-//
-//                MyPaintView img = new MyPaintView(getApplicationContext(), null, new DrawContaioner(new SerialBitmap(bitmap), i, pagew, pageh));
-//                img.setId(i);
-//                paintArr[i] = img;
-//                final int lastNum = i;
-//                img.setOnTouchListener(new View.OnTouchListener(){
-//                    @Override
-//                    public boolean onTouch(View v, MotionEvent event) {
-//                        lastTouch = lastNum;
-//                        return false;
-//                    }
-//                });
-//                RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-//                layoutParams.addRule(RelativeLayout.BELOW, i-1);
-//                img.setLayoutParams(layoutParams);
-//                scroll.addView(img);
-//            }
-//        } catch(Exception e) {
-//            Log.e("Error",e.getMessage());
-//        }
-//    }
-
-//    void loadExistMemoObject(){
-//        String path = imageFilePath + "/" + memoName;
-//        RelativeLayout scroll = findViewById(R.id.scroll);
-//        File file = new File(path);
-//        int pageNum = file.list().length;
-//        Log.e("PageNum", pageNum + "");
-//
-//        try {
-//            pdfCount = pageNum;
-//            paintArr = new MyPaintView[pageNum];
-//
-//            for(int i = 0 ; i < pageNum; i++){
-//                File objectFile = new File(path + "/" + i + ".dat");
-//                FileInputStream fis = new FileInputStream(objectFile);
-//                ObjectInputStream ios = new ObjectInputStream(fis);
-//                DrawContaioner drawContaioner = (DrawContaioner) ios.readObject();
-//                MyPaintView myPaintView = new MyPaintView(getApplicationContext(),null,drawContaioner);
-//                paintArr[i] = myPaintView;
-//                myPaintView.setId(i);
-//                pagew= myPaintView.getDrawContaioner().getHeight();
-//                pagew= myPaintView.getDrawContaioner().getWidth();
-//                Log.e("loadInfo", myPaintView.getDrawContaioner().getHeight() + "");
-//                Log.e("loadInfo", myPaintView.getDrawContaioner().getWidth() + "");
-//                final int lastNum = i;
-//                myPaintView.setOnTouchListener(new View.OnTouchListener(){
-//                    @Override
-//                    public boolean onTouch(View v, MotionEvent event) {
-//                        lastTouch = lastNum;
-//                        return false;
-//                    }
-//                });
-//                RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-//                layoutParams.addRule(RelativeLayout.BELOW, i-1);
-//                myPaintView.setLayoutParams(layoutParams);
-//                scroll.addView(myPaintView);
-//            }
-//        } catch(Exception e) {
-//            Log.e("Error",e.getMessage());
-//        }
-//    }
+    public void saveToDatabase(DrawContaioner drawContaioner){
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(drawContaioner);
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("memoName", memoName);
+            contentValues.put("pageNum", drawContaioner.getPageNum());
+            contentValues.put("data", baos.toByteArray());
+            databaseManager.upsert("MemoObject", contentValues);
+        } catch (Exception e) {
+            Log.e("터졋다..", e.getMessage() + "");
+        }
+    }
 
     void saveObjectInMemory() {
         try {
-            ArrayList<MyPaintView> myPaintViewPool = paintViewManager.getMyPaintViewPool();
-            String path = imageFilePath + "/" + memoName;
-            for(int i = 0 ; i < myPaintViewPool.size() ; i++){
-                MyPaintView myPaintView = myPaintViewPool.get(i);
-                File file = new File(path ,myPaintView.getDrawContaioner().getPageNum()+".dat");
-                Log.e("save", file.getAbsolutePath());
-                FileOutputStream fos = new FileOutputStream(file);
-                ObjectOutputStream oos = new ObjectOutputStream(fos);
-                oos.writeObject(myPaintView.getDrawContaioner());
-                oos.flush();
-                oos.close();
-                fos.close();
+            for(int i = loadedPageIndex + 1; i > loadedPageIndex - LOAD_PAGE ; i--){
+                MyPaintView myPaintView = paintViewManager.getMyPaintViewById(i);
+                if(myPaintView.isModified() == true)
+                    saveToDatabase(myPaintView.getDrawContaioner());
             }
         } catch (Exception e) {
             Log.e("Error_Object", e.getMessage());
         }
     }
 
-
-    void saveImage(Bitmap bitmap, int pageNum) {
-        try {
-            String path = imageFilePath + "/" + memoName;
-//            File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS); // 외부저장소로 저장테스트용
-            File file = new File(path ,pageNum+".png");
-            Log.e("save", file.getAbsolutePath());
-            FileOutputStream out = new FileOutputStream(file);
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            Log.e("Error", e.getMessage());
-        }
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -865,96 +610,162 @@ public class MemoLoadManager extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.stroke:
-                showWriteSetup();
+                showTools();
                 break;
             case R.id.colorPick:
-                openColorPicker();
+                eraserSetup();
+                break;
+            case R.id.hilight:
+                for(MyPaintView p: paintViewManager.getMyPaintViewPool()){
+                    p.highlight();
+                }
                 break;
             case R.id.undo:
-                paintViewManager.getMyPaintViewById(lastTouch).onClickUndo();
+                paintViewManager.getMyPaintViewById(paintViewManager.getLastTouchViewID()).onClickUndo();
                 break;
             case R.id.redo:
-                paintViewManager.getMyPaintViewById(lastTouch).onClickRedo();
+                paintViewManager.getMyPaintViewById(paintViewManager.getLastTouchViewID()).onClickRedo();
                 break;
             case R.id.erase:
-                int i = 0;
+                if(!eraseMode){
+                    tempicon = item.getIcon();
+                    item.setIcon(R.drawable.ic_edit_black_24dp);
+                }else{
+                    item.setIcon(tempicon);
+                }
+                eraseMode = !eraseMode;
                 for(MyPaintView p : paintViewManager.getMyPaintViewPool()){
-                    Log.e("터지는 부분", i + "");
                     p.setEraseMode();
-                    i++;
                 }
                 break;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private void showWriteSetup() {
-        final EditText editText = new EditText(this);
-        editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+    private void showTools(){
 
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("AlertDialog Title");
-        builder.setMessage("굵기 입력");
-        builder.setView(editText);
-        builder.setPositiveButton("입력",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        for (int i = 0; i < pdfCount; i++) {
-                            paintViewManager.getMyPaintViewById(lastTouch).setStrokeWidth(Integer.parseInt(editText.getText().toString()));
-                        }
-
-                    }
-                });
-        builder.setNegativeButton("취소",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-
-                    }
-                });
-        builder.show();
+        final toolFragment tool = new toolFragment();
+        final FragmentManager fragmentManager = getSupportFragmentManager();
+        final FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction
+                .setCustomAnimations(R.anim.show_from_right, R.anim.exit_to_right, R.anim.show_from_right, R.anim.exit_to_right)
+                .add(R.id.tool_frame, tool)
+                .addToBackStack(null)
+                .commit();
 
     }
 
-    private void openColorPicker() {
-        AmbilWarnaDialog colorPicker = new AmbilWarnaDialog(this, tColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
-            @Override
-            public void onCancel(AmbilWarnaDialog dialog) {
-            }
+    public void setDefaultPen(int color, int width, int alpha){
+        for(MyPaintView p : paintViewManager.getMyPaintViewPool()){
+            p.setStrokeWidth(width);
+            p.setColor(color);
+            p.setAlpha(alpha);
+        }
+    }
 
+    public void showWriteSetup() {
+
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View viewInDialog = inflater.inflate(R.layout.seekbar_color_stroke, null);
+        final AlertDialog penDialog = new AlertDialog.Builder(this).setView(viewInDialog).create();
+        penDialog.show();
+        Window window = penDialog.getWindow(); // dialog 상단 배치
+        WindowManager.LayoutParams wlp = window.getAttributes();
+        wlp.gravity = Gravity.TOP;
+        window.setAttributes(wlp);
+        mColorSeekBar = (ColorSeekBar) viewInDialog.findViewById(R.id.colorSlider);
+        mColorSeekBar.setColorSeeds(R.array.text_colors);
+        strokeSeekBar = viewInDialog.findViewById(R.id.strokeSlider);
+
+        final TextView textView = (TextView) viewInDialog.findViewById(R.id.textView);
+        final ImageView oval_image = (ImageView) viewInDialog.findViewById(R.id.oval_image);
+        final GradientDrawable drawable_color = (GradientDrawable) ContextCompat.getDrawable(this, R.drawable.shape);
+        change_stroke=10;
+//        drawable_color.setStroke(change_stroke,change_color);
+//        oval_image.setImageDrawable(drawable_color);
+        for(MyPaintView p : paintViewManager.getMyPaintViewPool()){
+            p.setStrokeWidth(change_stroke);
+        }
+
+        mColorSeekBar.setMaxPosition(100);
+        mColorSeekBar.setThumbHeight(30);
+        mColorSeekBar.setDisabledColor(Color.GRAY);
+        mColorSeekBar.setOnInitDoneListener(new ColorSeekBar.OnInitDoneListener() {
             @Override
-            public void onOk(AmbilWarnaDialog dialog, int color) {
-                for (int i = 0; i < pdfCount; i++) {
-                    paintViewManager.getMyPaintViewById(lastTouch).setColor(color);
+            public void done() {
+                Log.i(TAG,"done!");
+            }
+        });
+
+        mColorSeekBar.setOnColorChangeListener(new ColorSeekBar.OnColorChangeListener() {
+            @Override
+            public void onColorChangeListener(int colorBarPosition, int alphaBarPosition, int color) { // 색상 변경
+                change_color = mColorSeekBar.getColor();
+                textView.setTextColor(change_color); // 텍스트 색
+                drawable_color.setStroke(change_stroke ,change_color); // 테두리 굵기/색
+                oval_image.setImageDrawable(drawable_color); // 적용
+                for(MyPaintView p : paintViewManager.getMyPaintViewPool()){
+                    p.setColor(change_color);
                 }
             }
         });
-        colorPicker.show();
+
+
+
+        strokeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() { // 굵기 변경
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                change_stroke=progress+10;
+                drawable_color.setStroke(change_stroke,change_color); // 테두리 굵기/색
+                oval_image.setImageDrawable(drawable_color); // 적용
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                for(MyPaintView p : paintViewManager.getMyPaintViewPool()){
+                    p.setStrokeWidth(seekBar.getProgress());
+                }
+            }
+        });
+    }
+
+    private void eraserSetup() {
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View viewInDialog = inflater.inflate(R.layout.seek_bar, null);
+        final AlertDialog penDialog = new AlertDialog.Builder(this).setView(viewInDialog).create();
+
+        penDialog.show();
+        Window window = penDialog.getWindow();
+        WindowManager.LayoutParams wlp = window.getAttributes();
+        wlp.gravity = Gravity.TOP;
+        window.setAttributes(wlp);
+
+        final SeekBar mSeekBarPenWidth = (SeekBar) viewInDialog.findViewById(R.id.seekbar_stroke);
+        final TextView widthStatus = (TextView) viewInDialog.findViewById(R.id.pen_width);
+        mSeekBarPenWidth.setProgress((int)pc.getErasePaint().getStrokeMiter()); // thumb position
+        widthStatus.setText("굵기: "+Float.toString((int)pc.getErasePaint().getStrokeMiter()));
+
+        mSeekBarPenWidth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                pc.mPaintSetStroke(seekBar.getProgress());
+            }
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+//                System.out.println("=============================================================================="+paintArr[0].getTempStroke());
+//                seekBar.setProgress((int)paintArr[1].getTempStroke());
+            }
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                widthStatus.setText("굵기: "+progress);
+            }
+        });
     }
 }
 
-
-////TODO 형태소분석 클래스에 합병
-//    void analisysPDF(Intent data){
-//        final Intent pdfData = data;
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                uri = pdfData.getData();
-//                String filePath = RealPathUtil.getRealPath(getApplicationContext(), uri);
-//                File file = new File(filePath);
-//                String text = "";
-//                try {
-//                    PdfReader reader = new PdfReader(new FileInputStream(file));
-//                    int n = reader.getNumberOfPages();
-//                    for(int i =0 ; i < n ; i++) {
-//                        text += PdfTextExtractor.getTextFromPage(reader, i + 1) + "\n";
-//                    }
-//
-//                }
-//                catch(Exception e){
-//                }
-//            }
-//        }).start();
-//    }
 

@@ -13,6 +13,7 @@ import com.github.irshulx.wysiwyg.Database.DatabaseManager;
 import com.github.irshulx.wysiwyg.NLP.NLPManager;
 import com.github.irshulx.wysiwyg.NLP.Twitter;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.BitmapManager;
+import com.github.irshulx.wysiwyg.Utilities.DrawManager.PaintConfig;
 
 
 public class SplashActivity extends AppCompatActivity {
@@ -21,6 +22,7 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splashscreen);
         Handler handler = new Handler();
+        PaintConfig.getInstance();
         handler.post(new Runnable() {
             @Override
             public void run() {

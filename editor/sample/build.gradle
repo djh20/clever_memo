@@ -73,6 +73,8 @@ dependencies {
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
     implementation 'com.twitter.penguin:korean-text:4.4.4'
     implementation 'com.itextpdf:itextg:5.5.10'
+    implementation project (':colorseekbar')
+
 
 
     configurations.all {

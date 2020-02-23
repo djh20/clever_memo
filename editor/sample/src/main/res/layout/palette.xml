@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+
+
+
+    <ImageView
+        android:id="@+id/black"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="right"
+        android:layout_marginTop="15dp"
+        android:layout_marginBottom="15dp"
+        app:srcCompat="@drawable/shape_black10"
+        />
+
+    <ImageView
+        android:id="@+id/red"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_below="@id/black"
+        android:layout_marginBottom="15dp"
+        app:srcCompat="@drawable/shape_red12" />
+
+    <ImageView
+        android:id="@+id/blue"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="right"
+        android:layout_marginBottom="15dp"
+        android:layout_below="@id/red"
+        app:srcCompat="@drawable/shape_blue12" />
+
+    <ImageView
+        android:id="@+id/yellow"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="right"
+        android:layout_below="@id/blue"
+        android:layout_marginBottom="15dp"
+        app:srcCompat="@drawable/shape_yellow26" />
+
+    <ImageView
+        android:id="@+id/pink"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_below="@id/yellow"
+        android:layout_gravity="right"
+        android:layout_marginBottom="15dp"
+        app:srcCompat="@drawable/shape_pink26" />
+
+    <ImageView
+        android:id="@+id/more"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_below="@id/pink"
+        android:layout_gravity="right"
+        android:layout_marginBottom="15dp"
+        app:srcCompat="@drawable/threedots" />
+
+
+</RelativeLayout>

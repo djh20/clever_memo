@@ -8,15 +8,15 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 public class BitmapManager {
-    private  final int NUM_BITMAP = 20;
+    private  final int NUM_BITMAP = 50;
     private static BitmapManager bitmapManager = null;
     private Vector<SerialBitmap> bitmapPool;
     int num = 0;
     private BitmapManager(){
         bitmapPool = new Vector<SerialBitmap>();
-        Bitmap.Config conf = Bitmap.Config.RGB_565;
         for ( int i = 0 ; i < NUM_BITMAP ; i++) {
-            bitmapPool.add(new SerialBitmap(null));
+            SerialBitmap serialBitmap = new SerialBitmap(null, i);
+            bitmapPool.add(serialBitmap);
         }
     }
 
@@ -37,13 +37,10 @@ public class BitmapManager {
                 try {
                     for (int i = 0; i < bitmapPool.size(); i++) {
                         SerialBitmap bitmap = bitmapPool.get(i);
-                        if (bitmap.getBitmap() == null && bitmap.isUsed() == false) {
-//                            Log.e("비트맵 부여", "ㅇㅁㄴㅇㄴ");
+                        if (bitmap.isUsed() == false) {
                             bitmap.setUsed(true);num++;
-//                            Log.e("부여횟수", num+"");
                             return bitmap;
                         }
-//                        Log.e("bitmaptest", i + "");
                     }
                 } catch (Exception e) {
                     Log.e("zz", e.getMessage());
@@ -52,31 +49,34 @@ public class BitmapManager {
         }
     }
 
-    public void setUnUse(Bitmap bitmap){
+    public void setUnUse(Bitmap bitmap,boolean isReUseMode ){
         SerialBitmap serialBitmap = null;
         for(int i = 0 ; i < bitmapPool.size() ; i++){
             serialBitmap= bitmapPool.get(i);
             if(serialBitmap.getBitmap() == bitmap)
                 break;
         }
-        setUnUse(serialBitmap);
+        setUnUse(serialBitmap, isReUseMode);
     }
 
-    public void setUnUse(SerialBitmap bitmap){
-        if(bitmap != null) {
-            if (!bitmap.isRecycled())
+    public void setUnUse(SerialBitmap bitmap, boolean isReUseMode){
+        if(isReUseMode == true)
+            bitmap.setUsed(false);
+        else if(isReUseMode == false) {
+            if (bitmap.getBitmap() != null && !bitmap.isRecycled())
                 bitmap.recycle();
             bitmap.setBitmap(null);
             bitmap.setUsed(false);
             Log.e("사용안함 설정", "설정");
         }
+
+        Log.e("사용안함 설정", bitmap.id +"의 사용안함설정을 실시 reuseMode = "  + isReUseMode);
     }
 
     public void clearAll(){
         for(int i = 0 ; i <bitmapPool.size() ; i++){
             SerialBitmap serialBitmap = bitmapPool.get(i);
-            if(serialBitmap.getBitmap() != null)
-                setUnUse(serialBitmap);
+            setUnUse(serialBitmap, false);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.github.irshulx.wysiwyg.Database;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseErrorHandler;
@@ -67,6 +68,15 @@ public class DatabaseManager extends SQLiteOpenHelper {
                 + "idf DOUBLE)"
         );
 
+        db.execSQL("Create TABLE IF NOT EXISTS MemoObject ("
+                + "memoName CHAR(20),"
+                + "pageNum INT,"
+                + "data BLOB," +
+                "PRIMARY KEY (memoName, pageNum))"
+        );
+
+
+
     }
 
     public void insertSQL(String sql){
@@ -79,6 +89,10 @@ public class DatabaseManager extends SQLiteOpenHelper {
 
     }
 
+    public void upsert(String tableName, ContentValues contentValues){
+        getWritableDatabase().insertWithOnConflict(tableName,null, contentValues , SQLiteDatabase.CONFLICT_REPLACE);
+
+    }
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 

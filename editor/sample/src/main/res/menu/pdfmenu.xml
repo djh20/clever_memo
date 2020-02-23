@@ -19,13 +19,18 @@
         app:showAsAction="always" />
     <item
         android:id="@+id/erase"
-        android:icon="@drawable/ic_save_black_24dp"
+        android:icon="@drawable/ic_erasewhite"
+        android:title="Item"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/hilight"
+        android:icon="@drawable/highlight"
         android:title="Item"
         app:showAsAction="always" />
     <item
         android:id="@+id/stroke"
-        android:title="굵기 입력" />
+        android:title="펜 설정" />
     <item
         android:id="@+id/colorPick"
-        android:title="색상 선택" />
+        android:title="지우개 설정" />
 </menu>

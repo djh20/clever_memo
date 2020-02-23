@@ -33,37 +33,64 @@ import java.util.Vector;
 public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     private static final float TOUCH_TOLERANCE = 4;
     DrawContaioner drawContaioner;
-    Paint erasePaint;
-    boolean eraseFlag = false;
+    PaintConfig pc = PaintConfig.getInstance();
+    boolean eraseTest = false;
+    Paint drawPaint = new Paint();
+    Canvas mCanvas;
+    int viewId;
+    boolean highlightFlag = false;
+    boolean undoFlag = false;
+    boolean touchFlag = false;
+    boolean isModified = false;
 
+    public boolean isModified() {
+        return isModified;
+    }
     public void clear(){
-        drawContaioner.mBitmapUnUse();
+        touchFlag = false;
+        mCanvas = null;
+        highlightFlag = false;
+        undoFlag = false;
+        drawPaint = null;
         drawContaioner = null;
-        eraseFlag = false;
-        erasePaint = null;
+        eraseTest = false;
+    }
+
+    public void lastTouch(){
+        touchFlag = true;
+    }
+    public void noTouch(){
+        touchFlag = false;
     }
 
     public boolean isCleared(){
-        if(drawContaioner == null && erasePaint == null)
+        if(drawContaioner == null && mCanvas == null)
             return true;
         return false;
     }
 
-    public void setupToUse(Context context){
-        erasePaint = new Paint();
-        erasePaint.setAntiAlias(true);
-        erasePaint.setDither(true);
-        erasePaint.setColor(context.getColor(R.color.lightGray));
-        erasePaint.setStyle(Paint.Style.STROKE);
-        erasePaint.setStrokeJoin(Paint.Join.ROUND);
-        erasePaint.setStrokeCap(Paint.Cap.ROUND);
-        erasePaint.setStrokeWidth(20);
+    public int getViewId() {
+        return viewId;
     }
 
-    public MyPaintView(Context context, AttributeSet attributeSet) {
+    public void setDrawContaioner(DrawContaioner drawContaioner) {
+        this.drawContaioner = drawContaioner;
+        if(drawContaioner.getCanvasBit() != null)
+            mCanvas = new Canvas(drawContaioner.getCanvasBit().getBitmap());
+    }
+
+    public void setViewId(int viewId) {
+        this.viewId = viewId;
+    }
+
+
+    public MyPaintView(Context context, AttributeSet attributeSet, int viewId) {
         super(context, attributeSet);
-
+        this.viewId = viewId;
+        setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        drawPaint = pc.getmPaint();
     }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -82,45 +109,76 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         Log.e("끄림", "그림");
-        if(drawContaioner != null && drawContaioner.getmBit() != null) {
+        if (drawContaioner != null && drawContaioner.getCanvasBit() != null && touchFlag) {
             getParent().requestDisallowInterceptTouchEvent(true);
-            drawContaioner.setTempColor(drawContaioner.getmPaint().getColor());
-            drawContaioner.setTempStroke(drawContaioner.getmPaint().getStrokeWidth());
-            int i = 0;
-            for (Path p : drawContaioner.getPaths()) {
-                Log.e("onDraw", "있던 거 그림");
-                drawContaioner.getmPaint().setColor(drawContaioner.getPaths().get(i).color);
-                drawContaioner.getmPaint().setStrokeWidth(drawContaioner.getPaths().get(i).stroke);
-                canvas.drawPath(p, drawContaioner.getmPaint());
-                i++;
+            if(undoFlag) {
+                drawContaioner.setTempColor(drawPaint.getColor());
+                drawContaioner.setTempStroke(drawPaint.getStrokeMiter());
+                mCanvas.drawBitmap(drawContaioner.getCanvasBit().getBitmap(),0,0,pc.getErasePaint());
+                int i = 0;
+                for (Path p : drawContaioner.getPaths()) {
+                    Log.e("onDraw", "있던 거 그림");
+                    pc.mPaintSetColor(drawContaioner.getPaths().get(i).color);
+                    pc.mPaintSetStroke(drawContaioner.getPaths().get(i).stroke);
+                    canvas.drawPath(p, drawPaint);
+                    mCanvas.drawPath(p, drawPaint);
+                    i++;
+                }
+                pc.mPaintSetColor(drawContaioner.getTempColor());
+                pc.mPaintSetStroke(drawContaioner.getTempStroke());
             }
-            drawContaioner.getmPaint().setColor(drawContaioner.getTempColor());
-            drawContaioner.getmPaint().setStrokeWidth(drawContaioner.getTempStroke());
-            if(eraseFlag&&drawContaioner.isEraseMode()){
-                canvas.drawPath(drawContaioner.getErasePath(),erasePaint);
+            else{
+                canvas.drawBitmap(drawContaioner.getCanvasBit().getBitmap(), 0, 0, null);
+                canvas.drawPath(drawContaioner.getmPath(), drawPaint);
             }
-            canvas.drawPath(drawContaioner.getmPath(), drawContaioner.getmPaint());
-            if(eraseFlag!=drawContaioner.isEraseMode())
-                drawContaioner.setEraseMode(eraseFlag);
         }
+        undoFlag = false;
+    }
+
+    public void setAlpha(int alpha){
+        pc.mPaintSetAlpha(alpha);
+    }
+
+    public void highlight(){
+        highlightFlag = !highlightFlag;
+        if(highlightFlag)
+            pc.mPaintSetAlpha(60);
+        else
+            pc.mPaintSetAlpha(255);
     }
 
     public void onClickUndo () {
+        Log.e("undosize",drawContaioner.getPaths().size()+"");
+        if(eraseTest)
+            setEraseMode();
         if (drawContaioner.getPaths().size()>0) {
+            mCanvas.setBitmap(drawContaioner.getCanvasBit().getBitmap());
+            undoFlag=true;
             drawContaioner.getUndonePaths().add(drawContaioner.getPaths().remove(drawContaioner.getPaths().size()-1));
             invalidate();
+
         }else{
         }
-
     }
 
     public void setEraseMode(){
-        drawContaioner.setEraseMode(!drawContaioner.isEraseMode());
-        eraseFlag = !eraseFlag;
+
+        eraseTest = !eraseTest;
+        if(eraseTest){
+           drawPaint = pc.getErasePaint();
+        }
+        else {
+            drawPaint = pc.getmPaint();
+        }
     }
 
     public void onClickRedo (){
+        if(eraseTest)
+            setEraseMode();
         if (drawContaioner.getUndonePaths().size()>0){
+//            drawContaioner.setCanvasBit(drawContaioner.getPureBit());
+            mCanvas.setBitmap(drawContaioner.getCanvasBit().getBitmap());
+            undoFlag=true;
             drawContaioner.getPaths().add(drawContaioner.getUndonePaths().remove(drawContaioner.getUndonePaths().size()-1));
             invalidate();
         }else {
@@ -138,123 +196,105 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
         float y = event.getY();
 
 
-        if(event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS)
-        {
-            if(drawContaioner.isEraseMode() == false) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        Log.e("down" , " exe");
-                        drawContaioner.getUndonePaths().clear();
-                        drawContaioner.getmPath().reset();
-                        drawContaioner.getmPath().moveTo(x, y);
-                        drawContaioner.getmPath().x.add(x);
-                        drawContaioner.getmPath().y.add(y);
+        if(event.getToolType(0) == MotionEvent.TOOL_TYPE_FINGER){
+        if(touchFlag && drawContaioner != null) {
+            if(isModified == false)
+                isModified = true;
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    Log.e("down", " exe");
+                    drawContaioner.getUndonePaths().clear();
+                    drawContaioner.getmPath().reset();
+                    drawContaioner.getmPath().moveTo(x, y);
+//                        drawContaioner.getmPath().x.add(x);
+//                        drawContaioner.getmPath().y.add(y);
+                    drawContaioner.setmX(x);
+                    drawContaioner.setmY(y);
+                    invalidate();
+                    break;
+
+                case MotionEvent.ACTION_MOVE:
+                    Log.e("move", " exe");
+                    float dx = Math.abs(x - drawContaioner.getmX());
+                    float dy = Math.abs(y - drawContaioner.getmY());
+                    if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+                        drawContaioner.getmPath().quadTo(drawContaioner.getmX(), drawContaioner.getmY(), (x + drawContaioner.getmX()) / 2, (y + drawContaioner.getmY()) / 2);
                         drawContaioner.setmX(x);
                         drawContaioner.setmY(y);
-                        invalidate();
-                        break;
+                    }
+//                       drawContaioner.getmPath().x.add(x);
+//                       drawContaioner.getmPath().y.add(y);
+                    invalidate();
+                    break;
 
-                    case MotionEvent.ACTION_MOVE:
-                        Log.e("move" , " exe");
-                        float dx = Math.abs(x - drawContaioner.getmX());
-                        float dy = Math.abs(y - drawContaioner.getmY());
-                        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-                           drawContaioner.getmPath().quadTo(drawContaioner.getmX(), drawContaioner.getmY(), (x + drawContaioner.getmX()) / 2, (y + drawContaioner.getmY()) / 2);
-                           drawContaioner.setmX(x);
-                            drawContaioner.setmY(y);
-                        }
-                       drawContaioner.getmPath().x.add(drawContaioner.getmX());
-                        drawContaioner.getmPath().y.add(drawContaioner.getmY());
-                        drawContaioner.getmPath().x.add((x + drawContaioner.getmX()) / 2);
-                        drawContaioner.getmPath().y.add((y + drawContaioner.getmY()) / 2);
-                        invalidate();
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                        Log.e("up" , " exe");
-                       drawContaioner.getmPath().lineTo(drawContaioner.getmX(), drawContaioner.getmY());
-                       drawContaioner.getmPath().color = drawContaioner.getmPaint().getColor();
-                       drawContaioner.getmPath().stroke = drawContaioner.getmPaint().getStrokeWidth();
+                case MotionEvent.ACTION_UP:
+                    Log.e("up", " exe");
+                    drawContaioner.getmPath().lineTo(drawContaioner.getmX(), drawContaioner.getmY());
+                    drawContaioner.getmPath().color = drawPaint.getColor();
+                    drawContaioner.getmPath().stroke = drawPaint.getStrokeMiter();
+                    if (!eraseTest)
                         drawContaioner.getPaths().add(drawContaioner.getmPath());
-                       drawContaioner.setmPath(new CusmtomPath());
-                       drawContaioner.getmPath().x.add(x);
-                       drawContaioner.getmPath().y.add(y);
-                        invalidate();
-                        break;
-                }
-
+                    Log.e("사이즈", drawContaioner.getPaths().size() + "");
+                    mCanvas.drawPath(drawContaioner.getmPath(), drawPaint);
+                    drawContaioner.setmPath(new CusmtomPath());
+//                       drawContaioner.getmPath().x.add(x);
+//                       drawContaioner.getmPath().y.add(y);
+                    invalidate();
+                    break;
             }
-            else{
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        drawContaioner.setErasePath( new CusmtomPath());
-                        drawContaioner.getErasePath().reset();
-                        drawContaioner.getErasePath().moveTo(x, y);
-                        drawContaioner.getErasePath().x.add(x);
-                        drawContaioner.getErasePath().y.add(y);
-                        drawContaioner.setmX(x);
-                        drawContaioner.setmY(y);
-                        invalidate();
-                        break;
-
-                    case MotionEvent.ACTION_MOVE:
-                        float dx = Math.abs(x - drawContaioner.getmX());
-                        float dy = Math.abs(y - drawContaioner.getmY());
-                        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-                            drawContaioner.getErasePath().quadTo(drawContaioner.getmX(), drawContaioner.getmY(), (x + drawContaioner.getmX()) / 2, (y + drawContaioner.getmY()) / 2);
-                            drawContaioner.setmX(x);
-                            drawContaioner.setmY(y);
-                        }
-                        drawContaioner.getErasePath().x.add(drawContaioner.getmX());
-                        drawContaioner.getErasePath().y.add(drawContaioner.getmY());
-                        drawContaioner.getErasePath().x.add((x + drawContaioner.getmX()) / 2);
-                        drawContaioner.getErasePath().y.add((y + drawContaioner.getmY()) / 2);
-                        invalidate();
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                        drawContaioner.getErasePath().lineTo(drawContaioner.getmX(), drawContaioner.getmY());
-                        drawContaioner.getErasePath().x.add(x);
-                        drawContaioner.getErasePath().y.add(y);
-                        erase();
-                        invalidate();
-                        drawContaioner.setEraseMode(false);
-                        invalidate();
-                        break;
-                }
-            }
-            return true;
+        }
+//
+//            }
+//            else{
+//                switch (event.getAction()) {
+//                    case MotionEvent.ACTION_DOWN:
+//                        drawContaioner.setErasePath( new CusmtomPath());
+//                        drawContaioner.getErasePath().reset();
+//                        drawContaioner.getErasePath().moveTo(x, y);
+//                        drawContaioner.getErasePath().x.add(x);
+//                        drawContaioner.getErasePath().y.add(y);
+//                        drawContaioner.setmX(x);
+//                        drawContaioner.setmY(y);
+//                        invalidate();
+//                        break;
+//
+//                    case MotionEvent.ACTION_MOVE:
+//                        float dx = Math.abs(x - drawContaioner.getmX());
+//                        float dy = Math.abs(y - drawContaioner.getmY());
+//                        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+//                            drawContaioner.getErasePath().quadTo(drawContaioner.getmX(), drawContaioner.getmY(), (x + drawContaioner.getmX()) / 2, (y + drawContaioner.getmY()) / 2);
+//                            drawContaioner.setmX(x);
+//                            drawContaioner.setmY(y);
+//                        }
+//                        drawContaioner.getErasePath().x.add(x);
+//                        drawContaioner.getErasePath().y.add(y);
+//                        invalidate();
+//                        break;
+//
+//                    case MotionEvent.ACTION_UP:
+//                        drawContaioner.getErasePath().lineTo(drawContaioner.getmX(), drawContaioner.getmY());
+//                        drawContaioner.getErasePath().x.add(x);
+//                        drawContaioner.getErasePath().y.add(y);
+//                        erase();
+//                        invalidate();
+//                        drawContaioner.setEraseMode(false);
+//                        invalidate();
+//                        break;
+//                }
+//            }
+//            return true;
         }
         return true;
     }
     public void setStrokeWidth(int width){
-        drawContaioner.getmPaint().setStrokeWidth(width);
+        pc.mPaintSetStroke(width);
     }
 
-    public void erase(){
 
-        for(int i = 0 ; i < drawContaioner.getPaths().size() ; i++){
-            CusmtomPath path = drawContaioner.getPaths().get(i);
-            for(int j = 0 ; j < drawContaioner.getErasePath().x.size() ; j++){
-                float x = drawContaioner.getErasePath().x.get(j);
-                float y = drawContaioner.getErasePath().y.get(j);
-                for(int z = 0 ; z < path.x.size() ; z++){
-                    float exist_x = path.x.get(z);
-                    float exist_y = path.y.get(z);
-                    if((x - 20 <= exist_x && exist_x <= x+20)&& (y -20 <= exist_y && exist_y <= y +20))
-                        drawContaioner.getPaths().remove(path);
-                    Log.e("exist_X", exist_x + " ");
-                    Log.e("exist_Y", exist_y + " ");
-                    Log.e("x", x + "");
-                    Log.e("y", y + "");
-                }
-            }
-        }
-    }
 
 
     public void setColor(int color){
-        drawContaioner.getmPaint().setColor(color);
+        pc.mPaintSetColor(color);
 
     }
 
@@ -271,30 +311,26 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
         return drawContaioner;
     }
 
-    public void setDrawContaioner(DrawContaioner drawContaioner) {
-        this.drawContaioner = drawContaioner;
-    }
-
 }
 
 class CusmtomPath extends Path implements Serializable{
 
-    Vector<Float> x;
-    Vector<Float> y;
+//    Vector<Float> x;
+//    Vector<Float> y;
     int color;
     float stroke;
     private ArrayList<PathAction> actions = new ArrayList<PathAction>();
 
     CusmtomPath() {
         super();
-        x = new Vector<Float>();
-        y = new Vector<Float>();
+//        x = new Vector<Float>();
+//        y = new Vector<Float>();
     }
 
     CusmtomPath(CusmtomPath cusmtomPath){
         super(cusmtomPath);
-        this.x = cusmtomPath.x;
-        this.y = cusmtomPath.y;
+//        this.x = cusmtomPath.x;
+//        this.y = cusmtomPath.y;
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
