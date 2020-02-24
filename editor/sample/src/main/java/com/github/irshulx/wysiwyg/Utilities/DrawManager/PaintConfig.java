@@ -9,6 +9,41 @@ public class PaintConfig {
 
     private Paint erasePaint;
     private Paint mPaint;
+    private float zoomX = 0;
+    private float zoomY = 0;
+    private boolean isZoomed = false;
+
+    public float getZoomX() {
+        return zoomX;
+    }
+
+    public void setZoomX(float zoomX) {
+        this.zoomX = zoomX;
+    }
+
+    public float getZoomY() {
+        return zoomY;
+    }
+
+    public void setZoomY(float zoomY) {
+        this.zoomY = zoomY;
+    }
+
+    public boolean isZoomed() {
+        return isZoomed;
+    }
+
+    public void setZoomed(boolean zoomed) {
+        isZoomed = zoomed;
+    }
+
+    public static PaintConfig getPaintConfig() {
+        return paintConfig;
+    }
+
+    public static void setPaintConfig(PaintConfig paintConfig) {
+        PaintConfig.paintConfig = paintConfig;
+    }
 
     private static PaintConfig paintConfig = null;
 

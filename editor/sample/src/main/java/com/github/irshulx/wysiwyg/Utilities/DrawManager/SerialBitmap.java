@@ -74,7 +74,7 @@ public class SerialBitmap implements Serializable {
             Log.e("여긴가", bitmapManager.num + "?????");
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inBitmap = tmpBitmap.getBitmap();
-            tmpBitmap.setBitmap(BitmapFactory.decodeByteArray(byteArray, 0, bufferLength, options));
+            tmpBitmap.setBitmap(BitmapFactory.decodeByteArray(byteArray, 0, bufferLength, options).copy(Bitmap.Config.ARGB_8888, true));
             bitmap = tmpBitmap.getBitmap();
         }
         catch(Exception e){

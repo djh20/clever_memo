@@ -11,6 +11,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -58,6 +59,7 @@ import com.github.irshulx.wysiwyg.Model.Noun;
 import com.github.irshulx.wysiwyg.NLP.Twitter;
 import com.github.irshulx.wysiwyg.R;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.BitmapManager;
+import com.github.irshulx.wysiwyg.Utilities.DrawManager.CusmtomPath;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.DrawContaioner;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.MyPaintView;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.PaintConfig;
@@ -87,6 +89,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
 
 import scala.util.control.TailCalls;
 import yuku.ambilwarna.AmbilWarnaDialog;
@@ -127,6 +130,11 @@ public class MemoLoadManager extends AppCompatActivity {
     boolean onTopUsing = false;
     boolean onBOtUsing = false;
     DatabaseManager databaseManager;
+    float zoomX;
+    float zoomY;
+
+
+
 
 
 
@@ -140,6 +148,91 @@ public class MemoLoadManager extends AppCompatActivity {
         nlpManager = NLPManager.getInstance();
         imageFilePath = getFilesDir().toString() + "/memoImage";
         scroll = findViewById(R.id.scroll);
+
+        final ScrollView scrollView = findViewById(R.id.container);
+//        scroll.setOnTouchListener(new OnTouchListener() {
+//            @Override
+//            public boolean onTouch(View view, MotionEvent motionEvent) {
+//
+//                Log.e("페이지", myPaintView.getDrawContaioner().getPageNum() +"");
+//
+////
+////                int selectedPage = (int) ((scrollView.getScrollY() + motionEvent.getY())/(pageh*mScale));
+////                Log.e("현재 선택된 페이지는?" , (selectedPage +1) +"");
+////                MyPaintView myPaintView = paintViewManager.getMyPaintViewById(selectedPage +1);
+////                boolean isZoomed = myPaintView.isZoomed();
+////                DrawContaioner drawContaioner = myPaintView.getDrawContaioner();
+////                boolean touchFlag = myPaintView.isTouchFlag();
+////                boolean isModified = myPaintView.isModified();
+////                float TOUCH_TOLERANCE = MyPaintView.getTouchTolerance();
+////                boolean eraseTest = myPaintView.isEraseTest();
+////                Paint drawPaint = myPaintView.getDrawPaint();
+////                Canvas mCanvas = myPaintView.getmCanvas();
+////
+////                float distanceCenterX = motionEvent.getX() - (pagew*mScale)/2;
+////                float distanceCenterY = motionEvent.getY()/(pageh*mScale) - (pageh*mScale)/2;
+////                float x = zoomX + distanceCenterX;
+////                float y = zoomY + distanceCenterY;
+//////                if(isZoomed == true){
+//////                    Log.e("줌인변경", "");
+//////                    x = motionEvent.getX() + getScaleX();
+//////                    y = motionEvent.getY() + getScaleY();
+//////                }
+////
+////                Log.e("x", motionEvent.getX() + " " + x);
+////                Log.e("x", motionEvent.getY() + " " + y);
+////
+////                if(motionEvent.getToolType(0) == MotionEvent.TOOL_TYPE_FINGER){
+////                    if(touchFlag && drawContaioner != null) {
+////
+////                        if(isModified == false)
+////                            isModified = true;
+////                        switch (motionEvent.getAction()) {
+////                            case MotionEvent.ACTION_DOWN:
+////                                Log.e("down", " exe");
+////                                drawContaioner.getUndonePaths().clear();
+////                                drawContaioner.getmPath().reset();
+////                                drawContaioner.getmPath().moveTo(x, y);
+//////                        drawContaioner.getmPath().x.add(x);
+//////                        drawContaioner.getmPath().y.add(y);
+////                                drawContaioner.setmX(x);
+////                                drawContaioner.setmY(y);
+////                                myPaintView.invalidate();
+////                                break;
+////
+////                            case MotionEvent.ACTION_MOVE:
+////                                Log.e("move", " exe");
+////                                float dx = Math.abs(x - drawContaioner.getmX());
+////                                float dy = Math.abs(y - drawContaioner.getmY());
+////                                if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+////                                    drawContaioner.getmPath().quadTo(drawContaioner.getmX(), drawContaioner.getmY(), (x + drawContaioner.getmX()) / 2, (y + drawContaioner.getmY()) / 2);
+////                                    drawContaioner.setmX(x);
+////                                    drawContaioner.setmY(y);
+////                                }
+////                                myPaintView.invalidate();
+////                                break;
+////
+////                            case MotionEvent.ACTION_UP:
+////                                Log.e("up", " exe");
+////                                drawContaioner.getmPath().lineTo(drawContaioner.getmX(), drawContaioner.getmY());
+////                                drawContaioner.getmPath().setColor(drawPaint.getColor());
+////                                drawContaioner.getmPath().setStroke(drawPaint.getStrokeMiter());
+////                                if (!eraseTest)
+////                                    drawContaioner.getPaths().add(drawContaioner.getmPath());
+////                                Log.e("사이즈", drawContaioner.getPaths().size() + "");
+////                                mCanvas.drawPath(drawContaioner.getmPath(), drawPaint);
+////                                drawContaioner.setmPath(new CusmtomPath());
+////                                myPaintView.invalidate();
+////                                break;
+////                        }
+////                    }
+////                }
+//                return true;
+//            }
+//        });
+
+
+        PaintConfig paintConfig = PaintConfig.getInstance();
         gestureDetector = new GestureDetector(this, new GestureListener());
         mScaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener()
         {
@@ -148,22 +241,46 @@ public class MemoLoadManager extends AppCompatActivity {
             {
                 float scale = 1 - detector.getScaleFactor();
                 float prevScale = mScale;
-                mScale += scale;
-                if (mScale < 0.1f) // Minimum scale condition:
-                    mScale = 0.1f;
-                if (mScale > 10f) // Maximum scale condition:
-                    mScale = 10f;
-                ScaleAnimation scaleAnimation = new ScaleAnimation(1f / prevScale, 1f / mScale, 1f / prevScale, 1f / mScale, detector.getFocusX(), detector.getFocusY());
-                scaleAnimation.setDuration(0);
-                scaleAnimation.setFillAfter(true);
-                ScrollView layout =(ScrollView) findViewById(R.id.container);
-                layout.startAnimation(scaleAnimation);
+                if(mScale +scale <= 1)
+                    mScale += scale;
+
+                if(mScale <= 1) {
+                    if (mScale < 0.1f)
+                        mScale = 0.1f;
+                    else if(mScale > 0.99f) {
+                        pc.setZoomed(false);
+                        mScale = 1f;
+                    }
+
+                    ScaleAnimation scaleAnimation = new ScaleAnimation(1f / prevScale, 1f / mScale, 1f / prevScale, 1f / mScale, detector.getFocusX(), detector.getFocusY());
+
+                    pc.setZoomX(detector.getFocusX());
+                    pc.setZoomY(detector.getFocusY()%pageh);
+
+                    Log.e("mscale" , mScale + "");
+                    Log.e("zoomX", zoomX + "");
+                    Log.e("zoomY", zoomY + "");
+
+                    scaleAnimation.setDuration(0);
+                    scaleAnimation.setFillAfter(true);
+                    int prex = (int) detector.getFocusX();
+                    int prey = (int) detector.getFocusY();
+//                    scroll.startAnimation(scaleAnimation);
+
+
+
+
+//                    for(int i = 0 ; i < paintViewManager.getMyPaintViewPool().size() ; i++){
+//                        MyPaintView myPaintView = paintViewManager.getMyPaintViewPool().get(i);
+//                    }
+                }
                 return true;
             }
         });
+
+
         showFileChooser();
         loadedPageIndex = 0 ;
-        final ScrollView scrollView = findViewById(R.id.container);
         //TODO 스크롤 바닥/천장에 닿았을때의 기능 작성
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             scrollView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
@@ -353,13 +470,10 @@ public class MemoLoadManager extends AppCompatActivity {
                             e.printStackTrace();
                         }
                         Toast.makeText(getApplicationContext(), "이미 존재하는 메모입니다, 저장된 메모를 로드합니다", Toast.LENGTH_SHORT).show();
-//                        loadExistMemoObject();
                     } else {
-                        makeFolder();
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
-
                                 try {
                                     final ArrayList<Noun> nouns = nlpManager.getResultFrequencyDataFromPdfFilePath(RealPathUtil.getRealPath(getApplicationContext(), uri));
                                     (MemoLoadManager.this).runOnUiThread(new Runnable() {
@@ -382,6 +496,7 @@ public class MemoLoadManager extends AppCompatActivity {
                             loadPdfAndSave();
                             Log.e("이름", memoName);
                             paintViewManager = new PaintViewManager(this, scroll, pdfCount, pagew, pageh);
+                            saveMemoConfigToDatabase(new MemoConfig(pdfCount, pagew, pageh));
                             loadSavedPage(0, LOAD_PAGE, false);
                         } catch (Exception e) {
                             Log.e("error", e.getMessage());
@@ -395,14 +510,7 @@ public class MemoLoadManager extends AppCompatActivity {
     }
 
     public void loadSavedPage(final int startPage, final int toLoadPage, final boolean isLoaded) throws IOException, ClassNotFoundException {
-        final String path = imageFilePath + "/" + memoName;
-        File file = new File(path);
-        final int pageNum = file.list().length;
 
-        if(paintViewManager == null){
-            DrawContaioner drawContaioner = loadPageFromDatabase(0);
-            paintViewManager = new PaintViewManager(getApplicationContext(), scroll, pageNum, drawContaioner.getWidth(), drawContaioner.getHeight());
-        }
         Log.e("진입", "로드진입");
         try {
             new Thread(new Runnable() {
@@ -413,7 +521,12 @@ public class MemoLoadManager extends AppCompatActivity {
                     for(int i = startPage ; i < toLoadPage; i++){
                         try {
                             final int viewId = i+1;
-                            final DrawContaioner drawContaioner = loadPageFromDatabase(i);
+                            DrawContaioner drawContaioner;
+                            while(true){
+                                drawContaioner= loadPageFromDatabase(i);
+                                if(drawContaioner != null)
+                                    break;
+                            }
                             drawContaioner.setPageNum(i);
                             if(drawContaioner.getCanvasBit() == null){
                                 SerialBitmap serialBitmap = bitmapManager.getUnUsingBitmap();
@@ -450,18 +563,12 @@ public class MemoLoadManager extends AppCompatActivity {
 
 
     boolean isExistMemo() {
-        String path = imageFilePath + "/" + memoName;
-        File file = new File(path);
-        if (file.exists() && file.isDirectory())
+        MemoConfig memoConfig =  loadMemoConfigFromDatabase();
+        if(memoConfig != null){
+            paintViewManager = new PaintViewManager(getApplicationContext(), scroll , memoConfig.getNumPage() , memoConfig.getWidth(), memoConfig.getHeight());
             return true;
-        return false;
-    }
-
-    void makeFolder() {
-        memoFolder = new File(imageFilePath, memoName);
-        if (!memoFolder.exists()) {
-            memoFolder.mkdirs();
         }
+        return false;
     }
 
     void loadPdfAndSave() throws IOException {
@@ -525,11 +632,7 @@ public class MemoLoadManager extends AppCompatActivity {
             }).start();
         }
 
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+
 
 
     }
@@ -554,6 +657,13 @@ public class MemoLoadManager extends AppCompatActivity {
                 })
                 .show();
     }
+
+
+
+
+
+
+
     public DrawContaioner loadPageFromDatabase(int pageNum){
         try {
             Cursor cursor = databaseManager.selectSQL("SELECT * FROM MemoObject Where memoName = '" + memoName + "'and pageNum = " + pageNum);
@@ -570,6 +680,43 @@ public class MemoLoadManager extends AppCompatActivity {
 
         return null;
     }
+
+
+    public void saveMemoConfigToDatabase(MemoConfig memoConfig)  {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = null;
+            oos = new ObjectOutputStream(baos);
+            oos.writeObject(memoConfig);
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("memoName", memoName);
+            contentValues.put("pageNum", -1);
+            contentValues.put("data", baos.toByteArray());
+            databaseManager.upsert("MemoObject", contentValues);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public MemoConfig loadMemoConfigFromDatabase()  {
+        MemoConfig result = null;
+        try {
+            Cursor cursor = databaseManager.selectSQL("SELECT * FROM MemoObject Where memoName = '" + memoName + "'and pageNum = " + -1);
+            cursor.moveToNext();
+            byte[] tmpBytes = cursor.getBlob(2);
+            ByteArrayInputStream bais = new ByteArrayInputStream(tmpBytes);
+            ObjectInputStream ois = null;
+            ois = new ObjectInputStream(bais);
+            result = (MemoConfig) ois.readObject();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+
 
     public void saveToDatabase(DrawContaioner drawContaioner){
         try {
@@ -590,8 +737,11 @@ public class MemoLoadManager extends AppCompatActivity {
         try {
             for(int i = loadedPageIndex + 1; i > loadedPageIndex - LOAD_PAGE ; i--){
                 MyPaintView myPaintView = paintViewManager.getMyPaintViewById(i);
-                if(myPaintView.isModified() == true)
+                if(myPaintView.isModified() == true) {
                     saveToDatabase(myPaintView.getDrawContaioner());
+                    Log.e("수정된거 저장", "저장함");
+                }
+
             }
         } catch (Exception e) {
             Log.e("Error_Object", e.getMessage());
@@ -769,3 +919,39 @@ public class MemoLoadManager extends AppCompatActivity {
 }
 
 
+class MemoConfig implements Serializable{
+
+    private int numPage;
+    private int width;
+    private int height;
+
+    public MemoConfig(int numPage, int width, int height) {
+        this.numPage = numPage;
+        this.width = width;
+        this.height = height;
+    }
+
+    public int getNumPage() {
+        return numPage;
+    }
+
+    public void setNumPage(int numPage) {
+        this.numPage = numPage;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+}
