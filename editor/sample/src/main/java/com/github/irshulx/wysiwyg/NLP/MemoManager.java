@@ -1,5 +1,6 @@
 package com.github.irshulx.wysiwyg.NLP;
 
+import android.content.ContentValues;
 import android.util.Log;
 
 import com.github.irshulx.wysiwyg.Database.DatabaseManager;
@@ -98,8 +99,20 @@ public class MemoManager implements Serializable {
                             + memo.getAddedDate() + "', "
                             + memo.getNumPage() + ", '"
                             + memo.getImagePath() + "')");
+
+//            ContentValues values = new ContentValues();
+//            values.put("memoIndex", memo.getMemoIndex());
+//            values.put("memoName", memo.getMemoIndex());
+//            values.put("category", memo.getMemoIndex());
+//            values.put("updataDate", memo.getMemoIndex());
+//            values.put("addedDate", memo.getAddedDate());
+//            values.put("pageNum", memo.getNumPage());
+//            values.put("imagePath", memo.getImagePath());
+
         }
     }
+
+
 
     public void saveWordInDatabase() {
         DatabaseManager databaseManager = DatabaseManager.getInstance();

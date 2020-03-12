@@ -10,9 +10,9 @@ import java.io.Serializable;
 
 public class SerialBitmap implements Serializable {
 
-    private Bitmap bitmap;
-    transient boolean isUsed;
-    int id;
+   private Bitmap bitmap;
+   transient boolean isUsed;
+   int id;
 
     public boolean isUsed() {
         return isUsed;
@@ -74,7 +74,7 @@ public class SerialBitmap implements Serializable {
             Log.e("여긴가", bitmapManager.num + "?????");
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inBitmap = tmpBitmap.getBitmap();
-            tmpBitmap.setBitmap(BitmapFactory.decodeByteArray(byteArray, 0, bufferLength, options).copy(Bitmap.Config.ARGB_8888, true));
+            tmpBitmap.setBitmap(BitmapFactory.decodeByteArray(byteArray, 0, bufferLength, options));
             bitmap = tmpBitmap.getBitmap();
         }
         catch(Exception e){

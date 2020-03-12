@@ -1,6 +1,5 @@
 package com.github.irshulx.wysiwyg.Utilities.DrawManager;
 
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
@@ -10,11 +9,9 @@ import java.util.ArrayList;
 
 public class DrawContaioner implements Serializable {
 
-
-
     private CusmtomPath mPath;
+    private transient Paint mPaint;
     private SerialBitmap mBit;
-    private SerialBitmap canvasBit;
     private ArrayList<CusmtomPath> paths = new ArrayList<CusmtomPath>();
     private ArrayList<CusmtomPath> undonePaths = new ArrayList<CusmtomPath>();
     private float mX, mY;
@@ -26,26 +23,28 @@ public class DrawContaioner implements Serializable {
     private int tempColor;
     private float tempStroke;
 
+
     public void setDetail(SerialBitmap mBit, int pageNum, int pagew, int pageh){
         eraseMode = false;
         this.mBit = mBit;
         mPath = new CusmtomPath();
+        erasePath = new CusmtomPath();
         width = pagew;
         height = pageh;
         this.pageNum = pageNum;
     }
 
-    public DrawContaioner(){
-    }
+    public DrawContaioner(){ }
 
-
-
-    public SerialBitmap getCanvasBit() {
-        return canvasBit;
-    }
-
-    public void setCanvasBit(SerialBitmap canvasBit) {
-        this.canvasBit = canvasBit;
+    public void createmPaint(){
+        mPaint = new Paint();
+        mPaint.setAntiAlias(true);
+        mPaint.setDither(true);
+        mPaint.setColor(Color.BLACK);
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeJoin(Paint.Join.ROUND);
+        mPaint.setStrokeCap(Paint.Cap.ROUND);
+        mPaint.setStrokeWidth(6);
     }
 
     public CusmtomPath getmPath() {
@@ -56,6 +55,14 @@ public class DrawContaioner implements Serializable {
         this.mPath = mPath;
     }
 
+    public Paint getmPaint() {
+        Log.e("paint", pageNum +"");
+        return mPaint;
+    }
+
+    public void setmPaint(Paint mPaint) {
+        this.mPaint = mPaint;
+    }
 
     public SerialBitmap getmBit() {
         return mBit;
@@ -96,6 +103,7 @@ public class DrawContaioner implements Serializable {
     public void setmY(float mY) {
         this.mY = mY;
     }
+
 
     public int getPageNum() {
         return pageNum;
@@ -152,5 +160,11 @@ public class DrawContaioner implements Serializable {
     public void setTempStroke(float tempStroke) {
         this.tempStroke = tempStroke;
     }
+
+    public void mBitmapUnUse() {
+        BitmapManager bitmapManager = BitmapManager.getInstance();
+        bitmapManager.setUnUse(mBit, true);
+    }
+
 
 }

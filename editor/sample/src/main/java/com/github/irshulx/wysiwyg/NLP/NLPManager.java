@@ -135,14 +135,14 @@ public class NLPManager extends AppCompatActivity implements Serializable {
             Category category = categoryPool.get(i);
             ArrayList<Double> categoryCenterVector = categoryManager.getCenterVector(category, memoManager);
             double similarity = NLP_math.getCosineSimilarity(memoVector, categoryCenterVector);
-            results.add(new SimilariryResult(memo, category , similarity, -1));
+            results.add(new SimilariryResult(memo, category , similarity, 1));
         }
         Collections.sort(results);
 
         for(int i = 0 ; i < results.size() ; i++){
             if(i == numRecommand)
                 break;
-            Log.e("in_add", "add");
+            Log.e("in_add", results.get(i).getObject() + " " + results.get(i).getCompareObejct() + " " + results.get(i).getSimilarity());
             recommandCategories.add((Category)results.get(i).getCompareObejct());
         }
         Log.e("in", recommandCategories.size() + " ");

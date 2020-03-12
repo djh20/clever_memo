@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 public class BitmapManager {
-    private  final int NUM_BITMAP = 50;
+    private  final int NUM_BITMAP = 30;
     private static BitmapManager bitmapManager = null;
     private Vector<SerialBitmap> bitmapPool;
     int num = 0;
@@ -55,6 +55,8 @@ public class BitmapManager {
             serialBitmap= bitmapPool.get(i);
             if(serialBitmap.getBitmap() == bitmap)
                 break;
+
+            Log.e("Dasdd", "dsadasd");
         }
         setUnUse(serialBitmap, isReUseMode);
     }
@@ -76,7 +78,7 @@ public class BitmapManager {
     public void clearAll(){
         for(int i = 0 ; i <bitmapPool.size() ; i++){
             SerialBitmap serialBitmap = bitmapPool.get(i);
-            setUnUse(serialBitmap, false);
+                setUnUse(serialBitmap, false);
         }
     }
 }
