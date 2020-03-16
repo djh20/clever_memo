@@ -1,38 +1,24 @@
 package com.github.irshulx.wysiwyg.NLP;
 
-import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.support.annotation.RequiresApi;
-import android.support.v4.widget.NestedScrollView;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.Surface;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.Toast;
@@ -41,7 +27,6 @@ import com.github.irshulx.wysiwyg.Database.DatabaseManager;
 import com.github.irshulx.wysiwyg.Model.Category;
 import com.github.irshulx.wysiwyg.Model.Memo;
 import com.github.irshulx.wysiwyg.Model.Noun;
-import com.github.irshulx.wysiwyg.NLP.Twitter;
 import com.github.irshulx.wysiwyg.R;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.BitmapManager;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.DrawContaioner;
@@ -50,33 +35,19 @@ import com.github.irshulx.wysiwyg.Utilities.DrawManager.PaintViewManager;
 import com.github.irshulx.wysiwyg.Utilities.DrawManager.SerialBitmap;
 import com.github.irshulx.wysiwyg.Utilities.RealPathUtil;
 import com.github.irshulx.wysiwyg.ui.CategorySelectActivity;
-import com.itextpdf.text.pdf.PdfPage;
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Vector;
 
-import scala.util.control.TailCalls;
 import yuku.ambilwarna.AmbilWarnaDialog;
-
-import static android.support.v4.widget.NestedScrollView.*;
 
 
 public class MemoLoadManager extends AppCompatActivity {
@@ -179,6 +150,7 @@ public class MemoLoadManager extends AppCompatActivity {
             final DrawContaioner drawContaioner = loadPageFromDatabase(loadedPageIndex  - LOAD_PAGE);
             drawContaioner.createmPaint();
             (MemoLoadManager.this).runOnUiThread(new Runnable() {
+                @RequiresApi(api = Build.VERSION_CODES.M)
                 @Override
                 public void run() {
                     cleared.setupToUse(getApplicationContext());
@@ -213,6 +185,7 @@ public class MemoLoadManager extends AppCompatActivity {
             final DrawContaioner drawContaioner = loadPageFromDatabase(loadedPageIndex + 1);
             drawContaioner.createmPaint();
             (MemoLoadManager.this).runOnUiThread(new Runnable() {
+                @RequiresApi(api = Build.VERSION_CODES.M)
                 @Override
                 public void run() {
                     paintViewManager.replace(removeView, getApplicationContext());
@@ -284,6 +257,7 @@ public class MemoLoadManager extends AppCompatActivity {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
@@ -341,6 +315,7 @@ public class MemoLoadManager extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     public void loadSavedPage(final int startPage, final int toLoadPage) throws IOException, ClassNotFoundException {
         final String path = imageFilePath + "/" + memoName;
         File file = new File(path);
@@ -542,7 +517,7 @@ public class MemoLoadManager extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void showWriteSetup() {
+    public void showWriteSetup() {
         final EditText editText = new EditText(this);
         editText.setInputType(InputType.TYPE_CLASS_NUMBER);
 
@@ -584,6 +559,11 @@ public class MemoLoadManager extends AppCompatActivity {
             }
         });
         colorPicker.show();
+    }
+
+    public void setDefaultPen(int color, int i, int i1) {
+
+
     }
 }
 

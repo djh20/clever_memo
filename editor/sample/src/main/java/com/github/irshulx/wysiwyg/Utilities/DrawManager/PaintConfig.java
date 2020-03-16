@@ -7,6 +7,7 @@ import android.graphics.PorterDuffXfermode;
 
 public class PaintConfig {
 
+    private static PaintConfig paintConfig = null;
     private Paint erasePaint;
     private Paint mPaint;
     private float zoomX = 0;
@@ -38,6 +39,7 @@ public class PaintConfig {
     }
 
     public static PaintConfig getPaintConfig() {
+        PaintConfig paintConfig = PaintConfig.paintConfig;
         return paintConfig;
     }
 
@@ -45,7 +47,6 @@ public class PaintConfig {
         PaintConfig.paintConfig = paintConfig;
     }
 
-    private static PaintConfig paintConfig = null;
 
     private PaintConfig(){
         mPaint = new Paint();

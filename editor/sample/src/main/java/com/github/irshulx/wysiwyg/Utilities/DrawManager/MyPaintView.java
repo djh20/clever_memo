@@ -1,30 +1,20 @@
 package com.github.irshulx.wysiwyg.Utilities.DrawManager;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
-import android.graphics.Rect;
-import android.graphics.RectF;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.View;
-import android.widget.ImageView;
-import android.widget.ScrollView;
 
 import com.github.irshulx.wysiwyg.R;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -58,6 +48,7 @@ public class MyPaintView extends android.support.v7.widget.AppCompatImageView{
         return false;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     public void setupToUse(Context context){
         erasePaint = new Paint();
         erasePaint.setAntiAlias(true);

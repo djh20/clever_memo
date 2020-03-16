@@ -3,6 +3,8 @@ package com.github.irshulx.wysiwyg.Utilities.DrawManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.DrawableContainer;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
@@ -17,7 +19,8 @@ public class PaintViewManager {
     ArrayList<MyPaintView> myPaintViewPool = new ArrayList<MyPaintView>();
 
 
-    public PaintViewManager(Context context, RelativeLayout scroll, int numPage ,int width, int height) {
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public PaintViewManager(Context context, RelativeLayout scroll, int numPage , int width, int height) {
         for(int i = 0 ; i < numPage ; i++) {
             MyPaintView myPaintView = new MyPaintView(context, null);
             myPaintView.setMinimumHeight(width);
@@ -85,6 +88,7 @@ public class PaintViewManager {
     }
 
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     public void replace(MyPaintView removeView, Context context) {
         MyPaintView myPaintView = new MyPaintView(context, null);
         myPaintView.setMinimumHeight(removeView.getHeight());
